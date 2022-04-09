@@ -24,8 +24,10 @@
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+a {
+  color: black;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 @keyframes App-logo-spin {
@@ -35,4 +37,24 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.roomContainer {
+  background-color: beige;
+  border-radius: 25px;
+  width: 20%;
+  height: 50vh;
+  margin: auto;
+  padding: 20px;
+}
+
+header {
+  background-color: lightgrey;
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  align-items: center;
+}
+
+.navLink {
+  margin: 10px;
 }
