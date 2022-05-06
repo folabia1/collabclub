@@ -1,60 +1,146 @@
 .App {
-  text-align: center;
+  display: grid;
+  text-align: left;
+  grid-template-columns: 1fr 4fr;
+  height: 100vh;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+.sidebar {
+  display: grid;
+  padding: 50px 30px 0px 30px;
+  grid-template-rows: 60px 50px auto;
+  background-color: black;
   color: white;
 }
 
-a {
-  color: black;
-  font-weight: 700;
-  text-decoration: none;
+h1, #title {
+  margin: 0 auto;
+  padding: 0;
+  font-size: xx-large;
+  opacity: 100%;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.roomContainer {
-  background-color: beige;
-  border-radius: 25px;
-  width: 20%;
-  height: 50vh;
-  margin: auto;
-  padding: 20px;
-}
-
-header {
-  background-color: lightgrey;
-  display: grid;
-  grid-template-columns: 1fr 3fr 1fr;
+.SpotifyLogInOutButton {
+  display: flex;
+  /* margin: 0 2px 0 0; */
+  margin: 0 auto;
+  padding: 0 10px;
+  justify-content: center;
   align-items: center;
+  background-color: #F4F4F4;
+  box-shadow: 2px 3px #1ED760;
+  border-style: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.SpotifyLogInOutButton .spotifyIcon {
+  width: 30px;
+  height: auto;
+  padding: 0;
+  margin: 0 7px 0 0;
+}
+
+.SpotifyLogInOutButton p {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 0;
+  padding: 0;
+}
+
+.SpotifyLogInOutButton .spotifyText {
+  color: #1ED760;
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  justify-content:space-between;
+  padding: 30px 15px 60px 15px;
 }
 
 .navLink {
-  margin: 10px;
+  margin: 13px 0;
+  display: flex;
+  color: white;
+  opacity: 50%;
+  font-weight: 700;
+  text-decoration: none;
+  align-items: center;
+}
+
+.navLink:hover {
+  opacity: 70%;
+}
+
+.active {
+  opacity: 100%;
+}
+
+.active:hover {
+  opacity: 100%;
+}
+
+.navLink img {
+  height: 25px;
+  width: auto;
+}
+
+.navLink h2 {
+  margin: 0;
+  padding: 0 0 0 14px;
+  font-size: medium;
+  font-weight: 600;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  /* align-items: center; */
+}
+
+.infoBoxArea {
+  margin: 0;
+  color: white;
+  height: 70px;
+  /* background-color: dimgrey; */
+}
+
+.infoBox {
+  height: 50px;
+  margin: 9px 30px;
+  /* text-align: center; */
+  padding: 0 30px;
+  border-radius: 25px;
+  background-color: aliceblue;
+  border-style: solid;
+  border-width: 1px;
+  border-color: aliceblue;
+  color: black;
+}
+
+.roomContainer {
+  /* background-color: beige; */
+  color: white;
+  padding: 20px;
+  /* width: 100%; */
+}
+
+.searchArtistsProfilePic {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  align-items:flex-start;
+}
+
+li {
+  display: flex;
+  list-style-type: none;
+  justify-content: center;
 }

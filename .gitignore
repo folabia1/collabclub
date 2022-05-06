@@ -5,11 +5,30 @@
 /.pnp
 .pnp.js
 
+# notes
+NOTES.md
+
 # testing
 /coverage
+saved-emulator-data
 
 # production
 /build
+/functions/lib
+/functions/tsconfig.json
+/functions/tsconfig.dev.json
+
+# firebase
+.firebaserc
+firebase-debug.log
+firebase.json
+firestore-debug.log
+firestore.indexes.json
+firestore.rules
+pubsub-debug.log
+ui-debug.log
+/firebase-export*
+firebase-config.js
 
 # misc
 .DS_Store
