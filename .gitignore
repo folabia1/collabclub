@@ -12,6 +12,9 @@ NOTES.md
 /coverage
 saved-emulator-data
 
+# scss watch
+*.map
+
 # production
 /build
 /functions/lib

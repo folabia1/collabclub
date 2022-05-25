@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
-import { FeaturePathFinder } from "../Components/FeaturePathFinder";
-import { ChooseGuestUsername } from "../Components/ChooseGuestUsername";
+import { FeaturePathFinder } from "../components/FeaturePathFinder";
+import { ChooseGuestUsername } from "../components/ChooseGuestUsername";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { UserContext } from "../App";

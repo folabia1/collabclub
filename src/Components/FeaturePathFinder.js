@@ -2,26 +2,27 @@ import React, { useState } from "react";
 // import { httpsCallable } from 'firebase/functions';
 // import { functions } from '../firebase-config';
 import { SpotifyArtistsSearchBar } from "./SpotifyArtistsSearchBar";
+import defaultAvatar from "../images/default-avatar-profile-dark.png";
+import { ArtistOnPath } from "./ArtistOnPath";
 
 export function FeaturePathFinder(props) {
-
-  const [ isMiddleArtistActive, setIsMiddleArtistActive ] = useState(false)
-  const [ middleArtist, setMiddleArtist ] = useState({
-    "id": null,
-    "name": null,
-    "photoUrl": null,
-  })
+  const [isMiddleArtistActive, setIsMiddleArtistActive] = useState(false);
+  const [middleArtist, setMiddleArtist] = useState({
+    id: null,
+    name: null,
+    photoUrl: defaultAvatar,
+  });
 
   function toggleMiddleArtistActive() {
     if (isMiddleArtistActive) {
-      setIsMiddleArtistActive(false)
+      setIsMiddleArtistActive(false);
       setMiddleArtist({
-        "id": null,
-        "name": null,
-        "photoUrl": null,
-      })
+        id: null,
+        name: null,
+        photoUrl: defaultAvatar,
+      });
     } else {
-      setIsMiddleArtistActive(true)
+      setIsMiddleArtistActive(true);
     }
   }
 
@@ -30,61 +31,105 @@ export function FeaturePathFinder(props) {
     // a. make sure we have artist selected
     if (middleArtist.id) {
       // b. then clear both text inputs
-      const artistNameGuess = event.target[0].value
-      event.target[0].value = ""
+      const artistNameGuess = event.target[0].value;
+      event.target[0].value = "";
       // c. then call submitMiddle of props
-      props.onSubmitMiddle(artistNameGuess, middleArtist)
+      props.onSubmitMiddle(artistNameGuess, middleArtist);
       setMiddleArtist({
-        "id": null,
-        "name": null,
-        "photoUrl": null,
+        id: null,
+        name: null,
+        photoUrl: defaultAvatar,
       });
       setIsMiddleArtistActive(false);
     }
   }
 
   function renderArtistOnPath(artist, index, featurePathLength) {
-    // dont show input box for last artist
-    if (index === featurePathLength-1) {
-      return <p className="artistName">{artist["artist"]["name"]}</p>;
-    }
-    if (index === featurePathLength-2) {
-      if (artist["track"]) {
-        return <p className="artistName">{artist["artist"]["name"]}</p>
-      }
+    // show input box for second-to-last artist
+    // (unless already filled in i.e. feature path is complete)
+    if (index === featurePathLength - 2 && !artist["track"]) {
       return (
         <>
-          <p className="artistName">{artist["artist"]["name"]}</p>
-          <form onSubmit={isMiddleArtistActive ? handleSubmitMiddle : props.onSubmitFinal} autoComplete="off">
-            <input autoFocus type="text" id="songGuess" name="songGuess"
-              placeholder="Track name"></input>
+          <ArtistOnPath
+            type=""
+            name={artist["artist"]["name"]}
+            photoUrl={artist["artist"]["photoUrl"]}
+            track={artist["track"]}
+          />
+          {/* <div className="artist">
+            <img
+              className="artist-image"
+              src={
+                artist["artist"]["photoUrl"]
+                  ? artist["artist"]["photoUrl"]
+                  : defaultAvatar
+              }
+              alt={artist["artist"]["name"] + " profile picture"}
+            />
+            <p className="artist-name">{artist["artist"]["name"]}</p>
+          </div> */}
+          <form
+            onSubmit={
+              isMiddleArtistActive ? handleSubmitMiddle : props.onSubmitFinal
+            }
+            autoComplete="off"
+          >
+            <input
+              type="text"
+              autoFocus
+              autoComplete="off"
+              id="songGuess"
+              name="songGuess"
+              placeholder="Track name"
+            ></input>
             <button type="submit">Check</button>
           </form>
-          <button onClick={toggleMiddleArtistActive}>{isMiddleArtistActive ? "-" : "+"}</button>
-          {!isMiddleArtistActive ? null :
-            <SpotifyArtistsSearchBar 
-              pathArtists={props.featurePath.map(artist => artist["artist"]["id"])}
+          <button onClick={toggleMiddleArtistActive}>
+            {isMiddleArtistActive ? "-" : "+"}
+          </button>
+          {!isMiddleArtistActive ? null : (
+            <SpotifyArtistsSearchBar
+              pathArtists={props.featurePath.map(
+                (artist) => artist["artist"]["id"]
+              )}
               onSelect={(artist) => setMiddleArtist(artist)}
               middleArtist={middleArtist}
             />
-          }
+          )}
         </>
-      )
+      );
     }
-    return <p className="artistName">{artist["artist"]["name"]}</p>;
+    return (
+      <ArtistOnPath
+        type=""
+        name={artist["artist"]["name"]}
+        photoUrl={artist["artist"]["photoUrl"]}
+        track={artist["track"]}
+      />
+
+      // <div className="artist">
+      //   <img
+      //     className="artist-image"
+      //     src={
+      //       artist["artist"]["photoUrl"]
+      //         ? artist["artist"]["photoUrl"]
+      //         : defaultAvatar
+      //     }
+      //     alt={artist["artist"]["name"]}
+      //   />
+      //   <p className="artist-name">{artist["artist"]["name"]}</p>
+      // </div>
+    );
   }
 
   // TODO: loading animation while waiting for new artists
   return (
     <div className="FeaturePathFinder">
-      {props.featurePath.map((artist, index) => {
-        return (
-          <div key={artist["artist"]["id"]}>
-            {renderArtistOnPath(artist, index, props.featurePath.length)}
-          </div>
-        )
-      })}
-    </div> 
-  )
+      {props.featurePath.map((artist, index) => (
+        <div key={artist["artist"]["id"]}>
+          {renderArtistOnPath(artist, index, props.featurePath.length)}
+        </div>
+      ))}
+    </div>
+  );
 }
-

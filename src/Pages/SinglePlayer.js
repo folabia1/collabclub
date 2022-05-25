@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
-import { FeaturePathFinder } from "../Components/FeaturePathFinder";
+import { FeaturePathFinder } from "../components/FeaturePathFinder";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { UserContext, InfoContext } from "../App";
+import { GenreSelector } from "../components/GenreSelector";
+// import { PlaylistsContext } from "../App";
 
 export function SinglePlayer() {
   const checkSongForArtists = httpsCallable(functions, "checkSongForArtists");
@@ -13,16 +15,25 @@ export function SinglePlayer() {
 
   const { user } = useContext(UserContext);
   const { setInfo } = useContext(InfoContext);
+  // const { selectedPlaylists, finishedSelecting } = useContext(PlaylistsContext);
+  const [selectedGenres, setSelectedGenres] = useState([]);
   const [result, setResult] = useState(null);
   const [featurePath, setFeaturePath] = useState([]);
+  const [streak, setStreak] = useState(0);
   const [completePaths, setCompletePaths] = useState([]);
+  let mixGenres = false;
 
-  useEffect(() => {
-    refreshArtists(); // get artists for room
-  }, []);
+  // useEffect(() => {
+  //   refreshArtists(); // get artists for room
+  // }, []);
 
   async function refreshArtists() {
-    const artistsResponse = await getRandomStartingArtists();
+    const randGenre =
+      selectedGenres[Math.floor(Math.random() * selectedGenres.length)];
+    const artistsResponse = await getRandomStartingArtists({
+      genreName: randGenre,
+      mixGenres,
+    });
     console.log(
       `Received new artists. %c${artistsResponse.data[0].name} and ${artistsResponse.data[1].name}`,
       "font-weight: bold"
@@ -41,7 +52,11 @@ export function SinglePlayer() {
         { artist: artistsResponse.data[1] },
       ];
     });
+    if (!result) {
+      setStreak(0);
+    }
     setResult(null);
+    // setStreak((prevStreak) => prevStreak + 1);
   }
 
   async function submitMiddleSong(songNameGuess, nextArtistGuess) {
@@ -115,38 +130,72 @@ export function SinglePlayer() {
         prevFeaturePath[prevFeaturePath.length - 2]["track"] = {
           id: trackResponse.data.trackId,
           name: trackResponse.data.trackName,
+          artistNames: trackResponse.data.trackArtists,
         };
         return prevFeaturePath;
       });
+      setStreak((prevStreak) => prevStreak + 1);
       setCompletePaths((prevCompletePaths) => [
         ...prevCompletePaths,
         featurePath,
       ]);
+      setResult(true);
     } else {
       console.log("Wrong 😭");
       setInfo("Wrong 😭");
+      setStreak(0);
+      setResult(false);
     }
     // allow users to press next button (which was skip before)
     // or hit enter
   }
 
-  return !user ? (
-    <p>Must be logged in to play. You can continue as a guest if you'd like.</p>
-  ) : (
-    <div className="roomContainer">
-      <pre>
-        Playing as <strong>{user.username ? user.username : "Guest"}</strong>
-      </pre>
-      <FeaturePathFinder
-        featurePath={featurePath}
-        onSubmitMiddle={(songNameGuess, nextArtistGuess) =>
-          submitMiddleSong(songNameGuess, nextArtistGuess)
-        }
-        onSubmitFinal={submitFinalSong}
-      />
-      <button onClick={refreshArtists}>
-        {completePaths.length > 1 && result === null ? "Next" : "Skip"}
-      </button>
-    </div>
+  return (
+    <>
+      {!user && <p>Connecting...</p>}
+      {user && selectedGenres.length === 0 ? (
+        <GenreSelector onSubmit={(genres) => setSelectedGenres([...genres])} />
+      ) : (
+        <div className="SinglePlayer">
+          <pre>
+            <strong>{user && user.username ? user.username : "Guest"}</strong>
+          </pre>
+          <FeaturePathFinder
+            featurePath={featurePath}
+            onSubmitMiddle={(songNameGuess, nextArtistGuess) =>
+              submitMiddleSong(songNameGuess, nextArtistGuess)
+            }
+            onSubmitFinal={submitFinalSong}
+          />
+          <button
+            className={
+              "next-btn" +
+              (streak === 0 && featurePath.length > 0 ? " skip-btn" : "")
+            }
+            onClick={refreshArtists}
+          >
+            {featurePath.length === 0 ? "Start" : streak >= 1 ? "Next" : "Skip"}
+          </button>
+          <div className="streak-and-correct">
+            <p>
+              <strong>
+                <span role="img" aria-label="fire">
+                  🔥
+                </span>
+                {streak}
+              </strong>
+            </p>
+            <p>
+              <strong>
+                <span role="img" aria-label="tick">
+                  ✅
+                </span>
+                {completePaths.length}
+              </strong>
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

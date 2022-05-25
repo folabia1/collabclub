@@ -12,13 +12,11 @@ export function Home() {
   // buttons for single-player, multi-player
   // info about advantages of logging in with spotfiy
   return (
-    <div className="roomContainer">
-      {user && (
-        <pre>
-          Playing as <strong>{user.username ? user.username : "Guest"}</strong>
-        </pre>
-      )}
-      <h2>Play with nearby friends</h2>
+    <div className="Home">
+      <pre>
+        <strong>{user && user.username ? user.username : "Guest"}</strong>
+      </pre>
+      <h2>Welcome to Collab Club</h2>
       {/* <button onClick={handleClick}>Find a room</button> */}
     </div>
   );

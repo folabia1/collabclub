@@ -1,4 +1,4 @@
-import "./App.css";
+import "./css/App.css";
 import React, { createContext, useEffect, useState, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -12,36 +12,42 @@ import {
 import { connectFunctionsEmulator } from "firebase/functions";
 import { auth, db, functions } from "./firebase-config";
 
-import { Home } from "./Pages/Home";
-import { MultiPlayer } from "./Pages/MultiPlayer";
-import { SinglePlayer } from "./Pages/SinglePlayer";
-import { DevelopersOnly } from "./Pages/DevelopersOnly";
-import { Sidebar } from "./Components/Sidebar";
+import { Home } from "./pages/Home";
+import { MultiPlayer } from "./pages/MultiPlayer";
+import { SinglePlayer } from "./pages/SinglePlayer";
+import { DevelopersOnly } from "./pages/DevelopersOnly";
+import { Sidebar } from "./components/Sidebar";
 
 export const UserContext = createContext(null);
-export const InfoContext = createContext(null);
+export const InfoContext = createContext([]);
+// export const PlaylistsContext = createContext({});
 
 function App() {
   const [user, _setUser] = useState(null);
-  const [info, _setInfo] = useState("");
-
-  // TODO: setup an array containing all info messages, to restart timer every time a new message comes in
-  // new info message: set message as info, add message to front of array, if array was empty -> fade in info box
-  // after 5 seconds: remove final item from array, if array now empty -> remove set info to "" & fade out info box
-
-  function setInfo(newInfo) {
-    _setInfo(newInfo);
-    const timeoutId = setTimeout(() => {
-      _setInfo("");
-    }, 5000);
-    // clearTimeout(timeoutId)
-  }
-
   const userRef = useRef(user);
-  const setUser = (newUser) => {
+  function setUser(newUser) {
     userRef.current = newUser;
     _setUser(newUser);
-  };
+  }
+
+  const [info, _setInfo] = useState([]);
+  const infoRef = useRef();
+  function setInfo(newInfo) {
+    _setInfo((prevInfo) => {
+      infoRef.current.show();
+      infoRef.current.style.display = "block";
+      return [newInfo, ...prevInfo];
+    });
+    setTimeout(() => {
+      _setInfo((prevInfo) => {
+        if (prevInfo.length <= 1) {
+          infoRef.current.close();
+          infoRef.current.style.display = "none";
+        }
+        return prevInfo.slice(0, -1);
+      });
+    }, 5000);
+  }
 
   async function handleTabClosing() {
     // delete and sign out guest user
@@ -71,15 +77,21 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <dialog ref={infoRef} open={false} className="infoBox">
+          {info[0]}
+        </dialog>
         <UserContext.Provider value={{ user, setUser }}>
           <InfoContext.Provider value={{ info, setInfo }}>
+            {/* <PlaylistsContext.Provider
+                value={{
+                selectedPlaylists,
+                setSelectedPlaylists,
+                finishedSelecting,
+                setFinishedSelecting,
+              }}
+            > */}
             <Sidebar />
             <main>
-              <div className="infoBoxArea">
-                <div className="infoBox">
-                  <p>{info}</p>
-                </div>
-              </div>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="single-player" element={<SinglePlayer />} />
@@ -89,6 +101,7 @@ function App() {
                 <Route path="developers-only" element={<DevelopersOnly />} />
               </Routes>
             </main>
+            {/* </PlaylistsContext.Provider> */}
           </InfoContext.Provider>
         </UserContext.Provider>
       </div>

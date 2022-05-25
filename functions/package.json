@@ -18,7 +18,7 @@
     "@types/qs": "^6.9.7",
     "firebase": "^9.6.11",
     "firebase-admin": "^10.0.2",
-    "firebase-functions": "^3.20.1",
+    "firebase-functions": "^3.21.1",
     "qs": "^6.10.3"
   },
   "devDependencies": {

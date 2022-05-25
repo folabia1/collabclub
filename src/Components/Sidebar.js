@@ -12,7 +12,7 @@ export function Sidebar() {
 
   const navLinks = {
     top: {
-      home: {
+      "home": {
         title: "Home",
         location: "/",
         src: homeIcon,
@@ -43,10 +43,12 @@ export function Sidebar() {
 
   return (
     <nav className="sidebar">
-      <Link id="title" className="navLink" to="/">
-        <h1>Collab Club</h1>
-      </Link>
-      <SpotifyLogInOutButton />
+      <div className="title-and-login">
+        <Link id="title" className="navLink" to="/">
+          <h1>Collab Club</h1>
+        </Link>
+        <SpotifyLogInOutButton />
+      </div>
       <nav className="navLinks">
         <div className="topNavLinks">
           {Object.values(navLinks["top"]).map((link, index) => (
