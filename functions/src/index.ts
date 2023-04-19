@@ -1,7 +1,6 @@
-import { getSpotifyAuth } from "./getSpotifyAuth";
+import { getSpotifyAuthToken } from "./getSpotifyAuthToken";
 import axios from "axios";
 import { playlists } from "./playlists";
-// import artistsIds from "./artistsIds.json";
 
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as functions from "firebase-functions";
@@ -44,9 +43,7 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
   const roomsRef = firestore.collection("rooms");
   let query: admin.firestore.Query;
   if (data?.activityLevel) {
-    query = roomsRef
-      .where("players", "==", data.activityLevel === "active")
-      .limit(1);
+    query = roomsRef.where("players", "==", data.activityLevel === "active").limit(1);
   } else {
     query = roomsRef.limit(1);
   }
@@ -75,40 +72,44 @@ exports.joinRoom = functions.https.onCall(async (data, context) => {
     return { role: null };
   }
 
+  const snapshotData = snapshot.data();
+  if (!snapshotData) {
+    return;
+  }
   // user is alreday a player in room
-  if (snapshot.data()["players"].includes(context.auth.uid)) {
+  if (snapshotData["players"].includes(context.auth.uid)) {
     return { role: "Player" };
   }
 
   // user is currently a spectator
-  if (snapshot.data()["spectators"].includes(context.auth.uid)) {
-    if (snapshot.data()["players"].length < 6) {
+  if (snapshotData["spectators"].includes(context.auth.uid)) {
+    if (snapshotData["players"].length < 6) {
       // room has space for user
       roomRef.update({
-        players: [...snapshot.data()["players"], context.auth.uid],
+        players: [...snapshotData["players"], context.auth.uid],
       });
       return { role: "Player" };
     } else {
       // room does not have space for user
       roomRef.update({
-        spectators: [...snapshot.data()["spectators"], context.auth.uid],
+        spectators: [...snapshotData["spectators"], context.auth.uid],
       });
       return { role: "Spectator" };
     }
   }
 
   // user is not a player or spectator in room
-  if (snapshot.data()["players"].length < 6) {
+  if (snapshotData["players"].length < 6) {
     // room has space for user
     roomRef.update({ active: true });
     roomRef.update({
-      players: [...snapshot.data()["players"], context.auth.uid],
+      players: [...snapshotData["players"], context.auth.uid],
     });
     return { role: "Player" };
   } else {
     // room does not have space for user
     roomRef.update({
-      spectators: [...snapshot.data()["spectators"], context.auth.uid],
+      spectators: [...snapshotData["spectators"], context.auth.uid],
     });
     return { role: "Spectator" };
   }
@@ -117,40 +118,38 @@ exports.joinRoom = functions.https.onCall(async (data, context) => {
 exports.leaveRoom = functions.https.onCall(async (data, context) => {
   const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
   const snapshot = await roomRef.get();
+  const snapshotData = snapshot.data();
+
   // if room does not exist
-  if (!snapshot.exists) {
+  if (!snapshot.exists || !snapshotData) {
     console.log(`Cannot leave Room ${data["roomName"]}. Room does not exist.`);
     return false;
   }
 
   // remove user from players
-  const players = snapshot.data()["players"];
+  const players = snapshotData["players"];
   for (let i = 0; i < players.length; i++) {
-    if (players[i] === context.auth.uid) {
+    if (players[i] === context?.auth?.uid) {
       players.splice(i, 1);
       roomRef.update({ players: players });
-      console.log(
-        `${context.auth.uid} stopped playing in Room ${data["roomName"]}`
-      );
+      console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
       return true;
     }
   }
 
   // remove user from spectators
-  const spectators = snapshot.data()["spectators"];
+  const spectators = snapshotData["spectators"];
   for (let i = 0; i < spectators.length; i++) {
-    if (spectators[i] === context.auth.uid) {
+    if (spectators[i] === context?.auth?.uid) {
       spectators.splice(i, 1);
       roomRef.update({ spectators: spectators });
-      console.log(
-        `${context.auth.uid} stopped playing in Room ${data["roomName"]}`
-      );
+      console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
       return true;
     }
   }
 
   // user is not a player or spectator in room
-  console.log(`${context.auth.uid} is not in Room ${data["roomName"]}`);
+  console.log(`${context?.auth?.uid ?? "User"} is not in Room ${data["roomName"]}`);
   return false;
 });
 
@@ -159,37 +158,37 @@ async function getRandomArtist() {
   const artistsCollectionRef = firestore.collection("artists");
   while (true) {
     const key = artistsCollectionRef.doc().id;
-    let snapshot = await artistsCollectionRef
-      .where("__name__", ">=", key)
-      .limit(1)
-      .get();
+    let snapshot = await artistsCollectionRef.where("__name__", ">=", key).limit(1).get();
     if (!snapshot.empty) {
       return firestore.doc(`artists/${snapshot.docs[0].id}`);
     }
   }
 }
 
-async function getRandomArtistFromGenre(genreName) {
+async function getRandomArtistFromGenre(genreName: string) {
   // arg 'genreName' should be randomly selected before calling function to keep starting and final artist in same genre
 
   // TODO: store access_token on firestore
   // 1. get random playlist of selected genre
   const playlistsIds = Object.values(playlists[genreName]);
-  const randPlaylistId =
-    playlistsIds[Math.floor(Math.random() * playlistsIds.length)];
+  const randPlaylistId = playlistsIds[Math.floor(Math.random() * playlistsIds.length)];
 
   // 2. get all artists from selected playlist
-  const tokenResponse = await getSpotifyAuth(); // request access token
+  const tokenResponse = await getSpotifyAuthToken(); // request access token
   const searchUrl = `https://api.spotify.com/v1/playlists/${randPlaylistId}/tracks`;
   try {
+    if (!tokenResponse) {
+      throw new Error("No token available.");
+    }
+
     const res = await axios.get(searchUrl, {
       params: {
         fields: "items(track(artists(id, name)))",
       },
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         // 'Access-Control-Allow-Origin': '*',
-        "Authorization": `Bearer ${tokenResponse.data.access_token}`,
+        Authorization: `Bearer ${tokenResponse.data.access_token}`,
         "Content-Type": "application/json",
       },
     });
@@ -207,15 +206,14 @@ async function getRandomArtistFromGenre(genreName) {
     try {
       const response = await axios.get(searchArtistUrl, {
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           // 'Access-Control-Allow-Origin': '*',
-          "Authorization": `Bearer ${tokenResponse.data.access_token}`,
+          Authorization: `Bearer ${tokenResponse.data.access_token}`,
           "Content-Type": "application/json",
         },
       });
       console.log(response.data.images[response.data.images.length - 1]["url"]);
-      const photoUrl =
-        response.data.images[response.data.images.length - 1]["url"] ?? null;
+      const photoUrl = response.data.images[response.data.images.length - 1]["url"] ?? null;
       randArtist["photoUrl"] = photoUrl;
       console.log(randArtist);
       return randArtist;
@@ -277,11 +275,8 @@ exports.setNewRoomArtists = functions.https.onCall(async (data) => {
 
 // search for artist
 exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
-  const tokenResponse = await getSpotifyAuth(); // request access token
-  const searchUrl = `https://api.spotify.com/v1/search?q=${data.artistName.replace(
-    /\s/g,
-    "%20"
-  )}`;
+  const tokenResponse = await getSpotifyAuthToken(); // request access token
+  const searchUrl = `https://api.spotify.com/v1/search?q=${data.artistName.replace(/\s/g, "%20")}`;
 
   try {
     const res = await axios.get(searchUrl, {
@@ -292,9 +287,9 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
         market: "US",
       },
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         "Access-Control-Allow-Origin": "*",
-        "Authorization": `Bearer ${tokenResponse.data.access_token}`,
+        Authorization: `Bearer ${tokenResponse.data.access_token}`,
         "Content-Type": "application/json",
       },
     });
@@ -303,9 +298,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
       return {
         id: artist.id,
         name: artist.name,
-        photoUrl: artist.images[artist.images.length - 1]
-          ? artist.images[artist.images.length - 1]["url"]
-          : null,
+        photoUrl: artist.images[artist.images.length - 1] ? artist.images[artist.images.length - 1]["url"] : null,
       };
     });
     return artistsData;
@@ -324,21 +317,14 @@ function createTrackNameVariations(trackName: string) {
     // trackName.split("/ ")[1].split(" (")[0], // after the slash & before the brackets
   ];
   const bracketsContent = trackName.match(/\(([^()]+)\)/)?.[1];
-  if (
-    bracketsContent &&
-    !["ft  ", "ft. ", "feat", "with"].includes(bracketsContent?.slice(0, 4))
-  ) {
+  if (bracketsContent && !["ft  ", "ft. ", "feat", "with"].includes(bracketsContent?.slice(0, 4))) {
     trackNameVariations.push(bracketsContent);
   }
   // console.log(trackNameVariations)
   return [...new Set(trackNameVariations)];
 }
 
-function isTrackNameSimilar(
-  songNameGuess: string,
-  actualSongName: string,
-  hardMode = false
-) {
+function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardMode = false) {
   const variations = createTrackNameVariations(actualSongName);
   console.log(variations);
   if (hardMode) {
@@ -364,15 +350,11 @@ function isTrackNameSimilar(
 
 // TODO: change to just search for track, allow two artists featuring on somone else's song
 // search for track by selected artist
-async function searchForTrackByArtistOnSpotify(
-  songNameGuess,
-  artistName,
-  accessToken
-) {
-  const searchUrl = `https://api.spotify.com/v1/search?q=${songNameGuess.replace(
+async function searchForTrackByArtistOnSpotify(songNameGuess, artistName, accessToken) {
+  const searchUrl = `https://api.spotify.com/v1/search?q=${songNameGuess.replace(/\s/g, "%20")}%20${artistName.replace(
     /\s/g,
     "%20"
-  )}%20${artistName.replace(/\s/g, "%20")}`;
+  )}`;
   // console.log(searchUrl);
 
   try {
@@ -384,9 +366,9 @@ async function searchForTrackByArtistOnSpotify(
         market: "US",
       },
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         // 'Access-Control-Allow-Origin': '*',
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
     });
@@ -399,7 +381,7 @@ async function searchForTrackByArtistOnSpotify(
 
 exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
   // search for tracks matching name and artist
-  const tokenResponse = await getSpotifyAuth(); // request access token
+  const tokenResponse = await getSpotifyAuthToken(); // request access token
   const potentialTracks = [];
   for (const artist of ["currentArtist", "nextArtist"]) {
     const res = await searchForTrackByArtistOnSpotify(
@@ -414,21 +396,15 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
 
   // check if song features both artists
   for (const track of potentialTracks) {
-    if (
-      track.artists.length < 2 ||
-      !isTrackNameSimilar(data.songNameGuess, track.name)
-    ) {
+    if (track.artists.length < 2 || !isTrackNameSimilar(data.songNameGuess, track.name)) {
       continue;
     }
     const trackArtistsIds = track.artists.map((artist) => artist.id);
     const trackArtistsNames = track.artists.map((artist) => artist.name);
 
     const trackAccepted =
-      trackArtistsIds.includes(data["currentArtist"].id) &&
-      trackArtistsIds.includes(data["currentArtist"].id);
-    console.log(
-      `Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: ${trackAccepted}`
-    );
+      trackArtistsIds.includes(data["currentArtist"].id) && trackArtistsIds.includes(data["currentArtist"].id);
+    console.log(`Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: ${trackAccepted}`);
 
     if (trackAccepted) {
       return {
@@ -439,9 +415,7 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
       };
     }
   }
-  console.log(
-    `Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: false`
-  );
+  console.log(`Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: false`);
   return {
     trackFound: false,
     trackId: null,
@@ -471,128 +445,100 @@ function resetRoom(roomName: string) {
   }
 }
 
-exports.updateRoom = functions.firestore
-  .document("/rooms/{roomName}")
-  .onUpdate((change, context) => {
-    const promises = [];
-    const dataBefore = change.before.data();
-    const dataAfter = change.after.data();
-    // check for CHANGE (in initial and final artists)
-    if (
-      dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
-      dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
-    ) {
-      // if artists are not null, update lastChange
-      if (
-        !(
-          dataAfter["initialArtist"].id == null &&
-          dataAfter["finalArtist"].id == null
-        )
-      ) {
-        console.log("UPDATING LAST CHANGE");
-        promises.push(
-          change.after.ref.set(
-            { lastChange: admin.firestore.Timestamp.now() },
-            { merge: true }
-          )
-        );
-      }
+exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate((change, context) => {
+  const promises = [];
+  const dataBefore = change.before.data();
+  const dataAfter = change.after.data();
+  // check for CHANGE (in initial and final artists)
+  if (
+    dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
+    dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
+  ) {
+    // if artists are not null, update lastChange
+    if (!(dataAfter["initialArtist"].id == null && dataAfter["finalArtist"].id == null)) {
+      console.log("UPDATING LAST CHANGE");
+      promises.push(change.after.ref.set({ lastChange: admin.firestore.Timestamp.now() }, { merge: true }));
     }
+  }
 
-    // check for CHANGE (in players and spectators)
-    if (
-      JSON.stringify(dataAfter["players"]) !=
-        JSON.stringify(dataBefore["players"]) ||
-      JSON.stringify(dataAfter["spectators"]) !=
-        JSON.stringify(dataBefore["spectators"])
-    ) {
-      // if room empty (no players or sepctators), reset room
-      if (
-        dataAfter["players"].length === 0 &&
-        dataAfter["spectators"].length === 0
-      ) {
-        console.log("RESETTING ROOM");
-        promises.push(resetRoom(context.params.roomName));
-      }
+  // check for CHANGE (in players and spectators)
+  if (
+    JSON.stringify(dataAfter["players"]) != JSON.stringify(dataBefore["players"]) ||
+    JSON.stringify(dataAfter["spectators"]) != JSON.stringify(dataBefore["spectators"])
+  ) {
+    // if room empty (no players or sepctators), reset room
+    if (dataAfter["players"].length === 0 && dataAfter["spectators"].length === 0) {
+      console.log("RESETTING ROOM");
+      promises.push(resetRoom(context.params.roomName));
     }
-    // background functions must return a Promise back to firebase
-    return Promise.all(promises);
-  });
+  }
+  // background functions must return a Promise back to firebase
+  return Promise.all(promises);
+});
 
-exports.resetUnusedRooms = functions.pubsub
-  .schedule("every 3 minutes")
-  .onRun(async (context) => {
-    const roomsList = await firestore.collection("rooms").listDocuments();
-    const writeBatch = firestore.batch();
+exports.resetUnusedRooms = functions.pubsub.schedule("every 3 minutes").onRun(async (context) => {
+  const roomsList = await firestore.collection("rooms").listDocuments();
+  const writeBatch = firestore.batch();
 
-    const timeNow = admin.firestore.Timestamp.now().toDate();
-    for (const roomRef of roomsList) {
-      const room = await roomRef.get();
-      // if lastChange in room was more than 3 mins ago
-      if (
-        timeNow.getMinutes() - 3 >
-        room.data()["lastChange"].toDate().getMinutes()
-      ) {
-        writeBatch.set(roomRef, {
-          active: false,
-          players: [],
-          spectators: [],
-          initialArtist: { id: null, name: null },
-          finalArtist: { id: null, name: null },
-          type: "guest", // guest, user or competition
-          owner: null,
-          hardMode: false,
-          lastChange: admin.firestore.Timestamp.now(),
-        });
-      }
+  const timeNow = admin.firestore.Timestamp.now().toDate();
+  for (const roomRef of roomsList) {
+    const room = await roomRef.get();
+    // if lastChange in room was more than 3 mins ago
+    if (timeNow.getMinutes() - 3 > room.data()["lastChange"].toDate().getMinutes()) {
+      writeBatch.set(roomRef, {
+        active: false,
+        players: [],
+        spectators: [],
+        initialArtist: { id: null, name: null },
+        finalArtist: { id: null, name: null },
+        type: "guest", // guest, user or competition
+        owner: null,
+        hardMode: false,
+        lastChange: admin.firestore.Timestamp.now(),
+      });
     }
+  }
 
-    const resetRoomsResponse = await writeBatch.commit();
-    console.log("[EVERY 3 MINUTES] Clearing empty rooms!");
-    return resetRoomsResponse;
-  });
+  const resetRoomsResponse = await writeBatch.commit();
+  console.log("[EVERY 3 MINUTES] Clearing empty rooms!");
+  return resetRoomsResponse;
+});
 
-exports.deleteGuestUsers = functions.pubsub
-  .schedule("every day 03:00")
-  .onRun((context) => {
-    // Start listing users from the beginning, 1000 at a time.
-    const deleteGuestUsers = async (nextPageToken = undefined) => {
-      // List batch of users, 1000 at a time.
-      try {
-        const listUsersResult = await admin
-          .auth()
-          .listUsers(1000, nextPageToken);
-        const dateNow = admin.firestore.Timestamp.now().toDate().getDate();
-        const toDelete = [];
-        listUsersResult.users.forEach((userRecord) => {
-          const creationDate = new Date(
-            userRecord.metadata.creationTime
-          ).getDate();
-          if (dateNow != creationDate) {
-            toDelete.push(userRecord.uid);
-          }
-        });
-
-        // Delete Users
-        if (toDelete.length > 0) {
-          console.log(`[deleteGuestUsers] Deleting ${toDelete.length} users.`);
-          admin.auth().deleteUsers(toDelete);
-        } else {
-          console.log("[deleteGuestUsers] No guest users to delete.");
+exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((context) => {
+  // Start listing users from the beginning, 1000 at a time.
+  const deleteGuestUsers = async (nextPageToken = undefined) => {
+    // List batch of users, 1000 at a time.
+    try {
+      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+      const dateNow = admin.firestore.Timestamp.now().toDate().getDate();
+      const toDelete = [];
+      listUsersResult.users.forEach((userRecord) => {
+        const creationDate = new Date(userRecord.metadata.creationTime).getDate();
+        if (dateNow != creationDate) {
+          toDelete.push(userRecord.uid);
         }
+      });
 
-        // Delete next batch of guest
-        if (listUsersResult.pageToken) {
-          deleteGuestUsers(listUsersResult.pageToken);
-        }
-        return toDelete.length > 0;
-      } catch (error) {
-        console.log("Error listing users:", error);
-        return false;
+      // Delete Users
+      if (toDelete.length > 0) {
+        console.log(`[deleteGuestUsers] Deleting ${toDelete.length} users.`);
+        admin.auth().deleteUsers(toDelete);
+      } else {
+        console.log("[deleteGuestUsers] No guest users to delete.");
       }
-    };
-    return deleteGuestUsers();
-  });
+
+      // Delete next batch of guest
+      if (listUsersResult.pageToken) {
+        deleteGuestUsers(listUsersResult.pageToken);
+      }
+      return toDelete.length > 0;
+    } catch (error) {
+      console.log("Error listing users:", error);
+      return false;
+    }
+  };
+  return deleteGuestUsers();
+});
 
 // search for track by selected artist
 async function getArtistsFromPlaylist(playlistId: string, accessToken: string) {
@@ -604,9 +550,9 @@ async function getArtistsFromPlaylist(playlistId: string, accessToken: string) {
         fields: "tracks.items(track(artists(name,id)))",
       },
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         // 'Access-Control-Allow-Origin': '*',
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
     });
@@ -618,10 +564,7 @@ async function getArtistsFromPlaylist(playlistId: string, accessToken: string) {
 }
 
 // returns 50 artists at a time
-async function getMultipleArtistsFromSpotify(
-  artistsIds: string[],
-  accessToken: string
-) {
+async function getMultipleArtistsFromSpotify(artistsIds: string[], accessToken: string) {
   const responses = [];
   for (let i = 0; i < Math.ceil(artistsIds.length / 50); i++) {
     const searchUrl = `https://api.spotify.com/v1/artists`;
@@ -631,9 +574,9 @@ async function getMultipleArtistsFromSpotify(
           ids: artistsIds.slice(50 * i, 50 * i + 50).toString(),
         },
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           // 'Access-Control-Allow-Origin': '*',
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       });
@@ -648,113 +591,91 @@ async function getMultipleArtistsFromSpotify(
   return Promise.all(responses);
 }
 
-exports.setNewStoredArtists = functions.pubsub
-  .schedule("every day 04:00")
-  .onRun(async (context) => {
-    // a. Select popular artists from spotfy
-    let artists = {}; // as an object to avoid duplicates
-    // Top Weekly Songs UK & USA and Top Daily Songs UK & USA
-    const chartPlaylistsIds = [
-      "37i9dQZEVXbMwmF30ppw50",
-      "37i9dQZEVXbLp5XoPON0wI",
-      "37i9dQZEVXbLnolsZ8PSNw",
-      "37i9dQZEVXbLRQDuF5jeBp",
-    ];
-    const tokenResponse = await getSpotifyAuth(); // request access token
-    for (const playlistId of chartPlaylistsIds) {
-      const res = await getArtistsFromPlaylist(
-        playlistId,
-        tokenResponse.data.access_token
-      );
-      res.data.tracks.items.forEach((item) => {
-        for (const artist of item.track.artists) {
-          // console.log("artist", artist);
-          artists[artist.id] = { name: artist.name };
-        }
-      });
-    }
-
-    // b. get artists profile pictures from spotify
-    const fullArtistsInfo = await getMultipleArtistsFromSpotify(
-      Object.keys(artists),
-      tokenResponse.data.access_token
-    );
-    let photoUrls = {};
-    for (const setOfArtistsInfo of fullArtistsInfo) {
-      setOfArtistsInfo.data.artists.forEach((artist) => {
-        photoUrls[artist.id] = artist.images[artist.images.length - 1];
-      });
-    }
-    Object.keys(artists).forEach((artistId, index) => {
-      if (!photoUrls[artistId]) {
-        console.log(artistId, "has no photos");
+exports.setNewStoredArtists = functions.pubsub.schedule("every day 04:00").onRun(async (context) => {
+  // a. Select popular artists from spotfy
+  let artists = {}; // as an object to avoid duplicates
+  // Top Weekly Songs UK & USA and Top Daily Songs UK & USA
+  const chartPlaylistsIds = [
+    "37i9dQZEVXbMwmF30ppw50",
+    "37i9dQZEVXbLp5XoPON0wI",
+    "37i9dQZEVXbLnolsZ8PSNw",
+    "37i9dQZEVXbLRQDuF5jeBp",
+  ];
+  const tokenResponse = await getSpotifyAuthToken(); // request access token
+  for (const playlistId of chartPlaylistsIds) {
+    const res = await getArtistsFromPlaylist(playlistId, tokenResponse.data.access_token);
+    res.data.tracks.items.forEach((item) => {
+      for (const artist of item.track.artists) {
+        // console.log("artist", artist);
+        artists[artist.id] = { name: artist.name };
       }
-      artists[artistId]["photoUrl"] = photoUrls[artistId]
-        ? photoUrls[artistId]["url"]
-        : null;
     });
+  }
 
-    // c. set artists in firebase
-    function updateStoredArtists() {
-      const artistsCollectionRef = firestore.collection("artists");
-      return firestore.runTransaction(async (transaction) => {
-        // delete previous artists
-        const snapshot = await artistsCollectionRef.get();
-        console.log(`Deleting ${snapshot.docs.length} Artists`);
-        snapshot.forEach((artistDoc) => {
-          transaction.delete(artistsCollectionRef.doc(artistDoc["id"]));
-        });
-        // set new artists
-        console.log(`Adding ${Object.keys(artists).length} New Artists`);
-        for (const artist of Object.entries(artists)) {
-          // console.log(artist[0])
-          const artistRef = firestore.collection("artists").doc();
-          transaction.set(artistRef, {
-            id: artist[0],
-            name: artist[1]["name"],
-            photoUrl: artist[1]["photoUrl"] ?? null,
-          });
-        }
+  // b. get artists profile pictures from spotify
+  const fullArtistsInfo = await getMultipleArtistsFromSpotify(Object.keys(artists), tokenResponse.data.access_token);
+  let photoUrls = {};
+  for (const setOfArtistsInfo of fullArtistsInfo) {
+    setOfArtistsInfo.data.artists.forEach((artist) => {
+      photoUrls[artist.id] = artist.images[artist.images.length - 1];
+    });
+  }
+  Object.keys(artists).forEach((artistId, index) => {
+    if (!photoUrls[artistId]) {
+      console.log(artistId, "has no photos");
+    }
+    artists[artistId]["photoUrl"] = photoUrls[artistId] ? photoUrls[artistId]["url"] : null;
+  });
+
+  // c. set artists in firebase
+  function updateStoredArtists() {
+    const artistsCollectionRef = firestore.collection("artists");
+    return firestore.runTransaction(async (transaction) => {
+      // delete previous artists
+      const snapshot = await artistsCollectionRef.get();
+      console.log(`Deleting ${snapshot.docs.length} Artists`);
+      snapshot.forEach((artistDoc) => {
+        transaction.delete(artistsCollectionRef.doc(artistDoc["id"]));
       });
-    }
-    return updateStoredArtists();
-  });
-
-exports.setDailyChallenge = functions.pubsub
-  .schedule("every day 06:00")
-  .onRun(async (context) => {
-    // select 2 random artists from artists collection
-    const selectedArtists = {};
-    while (Object.keys(selectedArtists).length < 2) {
-      const randArtistDoc = await getRandomArtist();
-      selectedArtists[randArtistDoc.id] = randArtistDoc;
-    }
-    const selectedArtistsDocs = Object.values(selectedArtists);
-
-    console.log("Daily Challenge Artists", selectedArtists);
-    // set artists
-    const todaysDate = admin.firestore.Timestamp.now()
-      .toDate()
-      .toDateString()
-      .replace(/ /g, "");
-    const todaysChallengeRef = firestore
-      .collection("dailyChallenge")
-      .doc(todaysDate);
-    todaysChallengeRef.set({
-      initialArtist: selectedArtistsDocs[0],
-      finalArtist: selectedArtistsDocs[1],
+      // set new artists
+      console.log(`Adding ${Object.keys(artists).length} New Artists`);
+      for (const artist of Object.entries(artists)) {
+        // console.log(artist[0])
+        const artistRef = firestore.collection("artists").doc();
+        transaction.set(artistRef, {
+          id: artist[0],
+          name: artist[1]["name"],
+          photoUrl: artist[1]["photoUrl"] ?? null,
+        });
+      }
     });
+  }
+  return updateStoredArtists();
+});
+
+exports.setDailyChallenge = functions.pubsub.schedule("every day 06:00").onRun(async (context) => {
+  // select 2 random artists from artists collection
+  const selectedArtists = {};
+  while (Object.keys(selectedArtists).length < 2) {
+    const randArtistDoc = await getRandomArtist();
+    selectedArtists[randArtistDoc.id] = randArtistDoc;
+  }
+  const selectedArtistsDocs = Object.values(selectedArtists);
+
+  console.log("Daily Challenge Artists", selectedArtists);
+  // set artists
+  const todaysDate = admin.firestore.Timestamp.now().toDate().toDateString().replace(/ /g, "");
+  const todaysChallengeRef = firestore.collection("dailyChallenge").doc(todaysDate);
+  todaysChallengeRef.set({
+    initialArtist: selectedArtistsDocs[0],
+    finalArtist: selectedArtistsDocs[1],
   });
+});
 
 exports.getDailyChallenge = functions.https.onCall(async () => {
   // console.log(admin.firestore.Timestamp.now());
-  const todaysDate = admin.firestore.Timestamp.now()
-    .toDate()
-    .toDateString()
-    .replace(/ /g, "");
-  const todaysChallenge = await firestore
-    .doc(`dailyChallenge/${todaysDate}`)
-    .get();
+  const todaysDate = admin.firestore.Timestamp.now().toDate().toDateString().replace(/ /g, "");
+  const todaysChallenge = await firestore.doc(`dailyChallenge/${todaysDate}`).get();
   const todaysArtistsData = {
     initialArtist: (await todaysChallenge.data()["initialArtist"].get()).data(),
     finalArtist: (await todaysChallenge.data()["finalArtist"].get()).data(),

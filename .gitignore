@@ -22,7 +22,6 @@ saved-emulator-data
 /functions/tsconfig.dev.json
 
 # firebase
-.firebaserc
 firebase-debug.log
 firebase.json
 firestore-debug.log
@@ -31,7 +30,6 @@ firestore.rules
 pubsub-debug.log
 ui-debug.log
 /firebase-export*
-firebase-config.js
 
 # misc
 .DS_Store
