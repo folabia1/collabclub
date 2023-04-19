@@ -10,14 +10,7 @@ To run the watch server for SCSS and TypeScript compilers, run `npm run dev`.
 
 This project will be available to try out soon.
 
-## Skills Used
+## Built With
 
-REST API Consumption (Spotify)
-Javascript
-React
-Routing
-State
-Props
-Hooks
-HTML
-CSS
+* REST API Consumption (Spotify)
+* React
