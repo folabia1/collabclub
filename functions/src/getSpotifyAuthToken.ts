@@ -15,7 +15,7 @@ export async function getSpotifyAuthToken() {
       qs.stringify({ grant_type: "client_credentials" }),
       {
         headers: {
-          Accept: "application/json",
+          "Accept": "application/json",
           "Content-Type": "application/x-www-form-urlencoded",
         },
         auth: {
