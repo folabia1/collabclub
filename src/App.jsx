@@ -43,29 +43,29 @@ function App() {
     }, 5000);
   }
 
-  async function handleTabClosing() {
-    // delete and sign out guest user
-    if (auth.currentUser.isAnonymous) {
-      await deleteUser(auth.currentUser);
-    }
-  }
+  // async function handleTabClosing() {
+  //   // delete and sign out guest user
+  //   if (auth.currentUser.isAnonymous) {
+  //     await deleteUser(auth.currentUser);
+  //   }
+  // }
 
   useEffect(() => {
-    connectAuthEmulator(auth, "localhost", 9099);
+    // connectAuthEmulator(auth, "localhost", 9099);
     connectFirestoreEmulator(db, "localhost", 8080);
     connectFunctionsEmulator(functions, "localhost", 5001);
-    onAuthStateChanged(auth, async (authUser) => {
-      setUser(authUser);
-    });
-    if (!auth.currentUser) {
-      // SIGN IN
-      (async () => await signInAnonymously(auth))();
-    }
-    window.addEventListener("unload", handleTabClosing);
+    // onAuthStateChanged(auth, async (authUser) => {
+    //   setUser(authUser);
+    // });
+    // if (!auth.currentUser) {
+    //   // SIGN IN
+    //   (async () => await signInAnonymously(auth))();
+    // }
+    // window.addEventListener("unload", handleTabClosing);
 
-    return async () => {
-      window.removeEventListener("unload", handleTabClosing);
-    };
+    // return async () => {
+    //   window.removeEventListener("unload", handleTabClosing);
+    // };
   }, []);
 
   return (
