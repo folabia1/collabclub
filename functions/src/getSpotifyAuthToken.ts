@@ -12,7 +12,7 @@ export async function getSpotifyAuthToken() {
   try {
     const response = await axios.post<Token>(
       "https://accounts.spotify.com/api/token",
-      qs.stringify({ grant_type: "client_credentials" }),
+      qs.stringify({grant_type: "client_credentials"}),
       {
         headers: {
           "Accept": "application/json",
