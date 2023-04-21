@@ -21,8 +21,9 @@
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",
+    "build:functions": "cd functions && npm run build",
     "serve": "vite preview",
-    "emulators:start": "firebase emulators:start --import=./saved-emulator-data --export-on-exit",
+    "emulators:start": "npm run build:functions && firebase emulators:start --import=./saved-emulator-data --export-on-exit",
     "emulators:stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9"
   },
   "eslintConfig": {
