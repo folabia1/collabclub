@@ -1,28 +1,21 @@
 import axios from "axios";
-import * as qs from "qs";
 
 type Token = {
   access_token: string;
 };
 
 export async function getSpotifyAuthToken() {
-  const clientId = process.env.SPOTIFY_CLIENT_ID ?? "";
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET ?? "";
+  const data = {
+    grant_type: "client_credentials",
+    client_id: process.env.SPOTIFY_CLIENT_ID ?? "",
+    client_secret: process.env.SPOTIFY_CLIENT_SECRET ?? "",
+  };
 
   try {
     const response = await axios.post<Token>(
       "https://accounts.spotify.com/api/token",
-      qs.stringify({grant_type: "client_credentials"}),
-      {
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        auth: {
-          username: clientId,
-          password: clientSecret,
-        },
-      }
+      new URLSearchParams(data).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
     return response;
