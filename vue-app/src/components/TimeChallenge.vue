@@ -1,12 +1,28 @@
 <script setup lang="ts">
-// import { ref } from "vue";
 import GenreChip from "./GenreChip.vue";
 import { useAppStore } from "../pinia/store";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase-config";
+import { onMounted } from "vue";
+
+const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
 const store = useAppStore();
-const pathArtistsIds = ["abcde", "abcdf"];
+const pathArtists = ["abcde", "abcdf"];
 const currentPathArtist = { name: "Nipsey Hussle", id: "abcdef" };
 const finalArtist = { name: "Drake", id: "final" };
+
+const refreshArtists = async () => {
+  store.resetPathArtistsToEmpty();
+  store.setRandomGameGenreFromSelected();
+  try {
+    const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
+    store.pushPathArtist(artistsResponse.data[0]);
+    store.setFinalArtist(artistsResponse.data[1]);
+  }
+};
+
+onMounted(refreshArtists);
 </script>
 
 <template>
@@ -17,7 +33,7 @@ const finalArtist = { name: "Drake", id: "final" };
 
     <div class="artists-in-play">
       <div class="artists-stack">
-        <Artist v-for="artistId in pathArtistsIds" :spotifyId="artistId" />
+        <ArtistImage v-for="artist in pathArtists" :spotifyId="artist" />
       </div>
 
       <i class="fa fa-arrow-right" />

@@ -1,9 +1,17 @@
 <script setup lang="ts">
-// import { ref } from "vue";
 import GenreChip from "./GenreChip.vue";
-import { useAppStore } from "../pinia/store";
+import { GenreName, useAppStore } from "../pinia/store";
+import { onMounted } from "vue";
+import { connectFirestoreEmulator } from "firebase/firestore";
+import { connectFunctionsEmulator } from "firebase/functions";
+import { db, functions } from "../firebase-config";
 
 const store = useAppStore();
+
+onMounted(() => {
+  connectFirestoreEmulator(db, "localhost", 8080);
+  connectFunctionsEmulator(functions, "localhost", 5001);
+});
 </script>
 
 <template>
@@ -11,7 +19,7 @@ const store = useAppStore();
     <div class="genre-chips">
       <GenreChip
         v-for="[genreName, isSelected] in Object.entries(store.genres)"
-        :text="genreName"
+        :text="genreName as GenreName"
         :active="isSelected"
         :disabled="false"
       />

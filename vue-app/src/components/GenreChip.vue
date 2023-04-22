@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useAppStore } from "../pinia/store";
+import type { GenreName } from "../pinia/store";
 
-const props = defineProps<{ text: string; active: boolean; disabled: boolean }>();
+const props = defineProps<{ text: GenreName; active: boolean; disabled: boolean }>();
 
 const store = useAppStore();
-const toggleSelected = () => store.selectGenre(props.text);
+const toggleSelected = () => store.toggleGenreSelected(props.text);
 </script>
 
 <template>
