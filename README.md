@@ -17,3 +17,4 @@ This project will be available to try out soon.
 
 - React
 - Spotify API
+- Firebase
