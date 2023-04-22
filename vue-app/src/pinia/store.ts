@@ -32,7 +32,7 @@ export const useAppStore = defineStore("app", {
         .map(([name, _]) => name) as GenreName[],
     genreNames: (state) => Object.keys(state.genres) as GenreName[],
     currentPathArtist: (state) => {
-      if (state.pathArtists.length === 0) return {};
+      if (state.pathArtists.length === 0) return null;
       return state.pathArtists[state.pathArtists.length - 1];
     },
   },

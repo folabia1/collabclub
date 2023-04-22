@@ -4,13 +4,11 @@ import { useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { onMounted } from "vue";
+import ArtistImage from "./ArtistImage.vue";
 
 const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
 const store = useAppStore();
-const pathArtists = ["abcde", "abcdf"];
-const currentPathArtist = { name: "Nipsey Hussle", id: "abcdef" };
-const finalArtist = { name: "Drake", id: "final" };
 
 const refreshArtists = async () => {
   store.resetPathArtistsToEmpty();
@@ -19,6 +17,8 @@ const refreshArtists = async () => {
     const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
     store.pushPathArtist(artistsResponse.data[0]);
     store.setFinalArtist(artistsResponse.data[1]);
+  } catch (error) {
+    console.error(error);
   }
 };
 
@@ -33,18 +33,20 @@ onMounted(refreshArtists);
 
     <div class="artists-in-play">
       <div class="artists-stack">
-        <ArtistImage v-for="artist in pathArtists" :spotifyId="artist" />
+        <ArtistImage v-for="artist in store.pathArtists" :artist="artist" />
       </div>
 
       <i class="fa fa-arrow-right" />
 
-      <Artist :spotifyId="finalArtist.id" />
+      <ArtistImage v-if="store.finalArtist" :artist="store.finalArtist" />
     </div>
 
-    <div class="artist-names">
-      <p>{{ currentPathArtist.name }}</p>
-      <p>{{ finalArtist.name }}</p>
+    <div class="artist-names" v-if="store.currentPathArtist && store.finalArtist">
+      <p>{{ store.currentPathArtist.name }}</p>
+      <p>{{ store.finalArtist.name }}</p>
     </div>
+
+    <button @click="refreshArtists">Refresh Artists</button>
   </div>
 </template>
 
