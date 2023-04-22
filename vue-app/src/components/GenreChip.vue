@@ -1,7 +1,10 @@
 <script setup lang="ts">
-defineProps<{ text: string; active: boolean; disabled: boolean }>();
+import { useAppStore } from "../pinia/store";
 
-const toggleSelected = () => {};
+const props = defineProps<{ text: string; active: boolean; disabled: boolean }>();
+
+const store = useAppStore();
+const toggleSelected = () => store.selectGenre(props.text);
 </script>
 
 <template>
@@ -9,3 +12,17 @@ const toggleSelected = () => {};
     {{ text }}
   </button>
 </template>
+
+<style lang="scss">
+button.genre-chip {
+  background-color: transparent;
+
+  &.active {
+    background-color: green;
+  }
+
+  &:disabled {
+    background-color: black;
+  }
+}
+</style>
