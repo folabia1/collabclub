@@ -1,6 +1,6 @@
-import {getSpotifyAuthToken} from "./getSpotifyAuthToken";
+import { getSpotifyAuthToken } from "./getSpotifyAuthToken";
 import axios from "axios";
-import {playlists} from "./playlists";
+import { playlists } from "./playlists";
 
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as functions from "firebase-functions";
@@ -52,6 +52,44 @@ type Track = {
 //   return initResponse;
 // });
 
+/* USERS */
+exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((context) => {
+  // Start listing users from the beginning, 1000 at a time.
+  const deleteGuestUsers = async (nextPageToken?: string) => {
+    // List batch of users, 1000 at a time.
+    try {
+      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+      const dateNow = admin.firestore.Timestamp.now().toDate().getDate();
+      const toDelete: string[] = [];
+      listUsersResult.users.forEach((userRecord) => {
+        const creationDate = new Date(userRecord.metadata.creationTime).getDate();
+        if (dateNow != creationDate) {
+          toDelete.push(userRecord.uid);
+        }
+      });
+
+      // Delete Users
+      if (toDelete.length > 0) {
+        console.log(`[deleteGuestUsers] Deleting ${toDelete.length} users.`);
+        admin.auth().deleteUsers(toDelete);
+      } else {
+        console.log("[deleteGuestUsers] No guest users to delete.");
+      }
+
+      // Delete next batch of guest
+      if (listUsersResult.pageToken) {
+        deleteGuestUsers(listUsersResult.pageToken);
+      }
+      return toDelete.length > 0;
+    } catch (error) {
+      console.log("Error listing users:", error);
+      return false;
+    }
+  };
+  return deleteGuestUsers();
+});
+
+/* ROOM */
 exports.getRoom = functions.https.onCall(async (data = null) => {
   const roomsRef = firestore.collection("rooms");
   let query: admin.firestore.Query;
@@ -65,7 +103,7 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
     const doc = querySnapshot.docs[0];
     console.log(doc.id);
     // roomsRef.doc(doc.id).update({"active": true});
-    return {name: doc.id, ...doc.data()};
+    return { name: doc.id, ...doc.data() };
   } else {
     return null;
   }
@@ -74,7 +112,7 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
 exports.joinRoom = functions.https.onCall(async (data, context) => {
   // user is not signed in
   if (!context.auth) {
-    return {role: null};
+    return { role: null };
   }
 
   const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
@@ -82,7 +120,7 @@ exports.joinRoom = functions.https.onCall(async (data, context) => {
   // if room does not exist
   if (!snapshot.exists) {
     console.log(`Cannot leave Room ${data["roomName"]}. Room does not exist.`);
-    return {role: null};
+    return { role: null };
   }
 
   const snapshotData = snapshot.data();
@@ -91,7 +129,7 @@ exports.joinRoom = functions.https.onCall(async (data, context) => {
   }
   // user is alreday a player in room
   if (snapshotData["players"].includes(context.auth.uid)) {
-    return {role: "Player"};
+    return { role: "Player" };
   }
 
   // user is currently a spectator
@@ -101,30 +139,30 @@ exports.joinRoom = functions.https.onCall(async (data, context) => {
       roomRef.update({
         players: [...snapshotData["players"], context.auth.uid],
       });
-      return {role: "Player"};
+      return { role: "Player" };
     } else {
       // room does not have space for user
       roomRef.update({
         spectators: [...snapshotData["spectators"], context.auth.uid],
       });
-      return {role: "Spectator"};
+      return { role: "Spectator" };
     }
   }
 
   // user is not a player or spectator in room
   if (snapshotData["players"].length < 6) {
     // room has space for user
-    roomRef.update({active: true});
+    roomRef.update({ active: true });
     roomRef.update({
       players: [...snapshotData["players"], context.auth.uid],
     });
-    return {role: "Player"};
+    return { role: "Player" };
   } else {
     // room does not have space for user
     roomRef.update({
       spectators: [...snapshotData["spectators"], context.auth.uid],
     });
-    return {role: "Spectator"};
+    return { role: "Spectator" };
   }
 });
 
@@ -144,7 +182,7 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i] === context?.auth?.uid) {
       players.splice(i, 1);
-      roomRef.update({players: players});
+      roomRef.update({ players: players });
       console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
       return true;
     }
@@ -155,7 +193,7 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
   for (let i = 0; i < spectators.length; i++) {
     if (spectators[i] === context?.auth?.uid) {
       spectators.splice(i, 1);
-      roomRef.update({spectators: spectators});
+      roomRef.update({ spectators: spectators });
       console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
       return true;
     }
@@ -166,7 +204,114 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
   return false;
 });
 
-async function getRandomArtist() {
+exports.setNewRoomArtists = functions.https.onCall(async (data) => {
+  // select 2 random artists from artists collection
+  const selectedArtists: Artist[] = [];
+  while (selectedArtists.length < 2) {
+    const randArtistDoc = await getRandomStoredArtist();
+    const artistData = (await randArtistDoc.get()).data() as Artist;
+    selectedArtists.push(artistData);
+  }
+  // update selected artists in room
+  firestore.doc(`rooms/${data.roomName}`).update({
+    initialArtist: {
+      id: selectedArtists[0]["id"],
+      name: selectedArtists[0]["name"],
+    },
+    finalArtist: {
+      id: selectedArtists[1]["id"],
+      name: selectedArtists[1]["name"],
+    },
+  });
+  return selectedArtists;
+});
+
+function resetRoom(roomName: string) {
+  try {
+    const roomRef = firestore.doc(`rooms/${roomName}`);
+    roomRef.update({
+      active: false,
+      players: [],
+      spectators: [],
+      initialArtist: { id: null, name: null },
+      finalArtist: { id: null, name: null },
+      type: "guest", // guest, user or competition
+      owner: null,
+      hardMode: false,
+      lastChange: admin.firestore.Timestamp.now(),
+    });
+    return true;
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+}
+
+exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate((change, context) => {
+  const promises = [];
+  const dataBefore = change.before.data();
+  const dataAfter = change.after.data();
+  // check for CHANGE (in initial and final artists)
+  if (
+    dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
+    dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
+  ) {
+    // if artists are not null, update lastChange
+    if (!(dataAfter["initialArtist"].id == null && dataAfter["finalArtist"].id == null)) {
+      console.log("UPDATING LAST CHANGE");
+      promises.push(change.after.ref.set({ lastChange: admin.firestore.Timestamp.now() }, { merge: true }));
+    }
+  }
+
+  // check for CHANGE (in players and spectators)
+  if (
+    JSON.stringify(dataAfter["players"]) != JSON.stringify(dataBefore["players"]) ||
+    JSON.stringify(dataAfter["spectators"]) != JSON.stringify(dataBefore["spectators"])
+  ) {
+    // if room empty (no players or sepctators), reset room
+    if (dataAfter["players"].length === 0 && dataAfter["spectators"].length === 0) {
+      console.log("RESETTING ROOM");
+      promises.push(resetRoom(context.params.roomName));
+    }
+  }
+  // background functions must return a Promise back to firebase
+  return Promise.all(promises);
+});
+
+exports.resetUnusedRooms = functions.pubsub.schedule("every day 04:00").onRun(async (context) => {
+  const roomsList = await firestore.collection("rooms").listDocuments();
+  const writeBatch = firestore.batch();
+
+  const timeNow = admin.firestore.Timestamp.now().toDate();
+  for (const roomRef of roomsList) {
+    const room = await roomRef.get();
+    const roomData = room.data();
+    if (!roomData) {
+      return;
+    }
+    // if lastChange in room was more than 3 mins ago
+    if (timeNow.getMinutes() - 3 > roomData["lastChange"].toDate().getMinutes()) {
+      writeBatch.set(roomRef, {
+        active: false,
+        players: [],
+        spectators: [],
+        initialArtist: { id: null, name: null },
+        finalArtist: { id: null, name: null },
+        type: "guest", // guest, user or competition
+        owner: null,
+        hardMode: false,
+        lastChange: admin.firestore.Timestamp.now(),
+      });
+    }
+  }
+
+  const resetRoomsResponse = await writeBatch.commit();
+  console.log("[EVERY 3 MINUTES] Clearing empty rooms!");
+  return resetRoomsResponse;
+});
+
+/* ARTISTS */
+async function getRandomStoredArtist() {
   // gets id, name and photoUrl
   const artistsCollectionRef = firestore.collection("artists");
   while (true) {
@@ -239,13 +384,12 @@ async function getRandomArtistFromGenre(genreName: string) {
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({genreName}: { genreName: string | undefined }) => {
+exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
   // select 2 random artists from artists collection
 
   const genres = Object.keys(playlists);
   const randomGenre = genres[Math.floor(Math.random() * genres.length)];
   const selectedGenre = genreName && genres.includes(genreName) ? genreName : randomGenre;
-  console.log("🚀 ~ file: index.ts:266 ~ selectedGenre:", selectedGenre);
   const selectedArtists: { [index: string]: Artist } = {};
 
   const maxRetries = 10;
@@ -260,29 +404,6 @@ exports.getRandomStartingArtists = functions.https.onCall(async ({genreName}: { 
   return selectedArtistsData;
 });
 
-exports.setNewRoomArtists = functions.https.onCall(async (data) => {
-  // select 2 random artists from artists collection
-  const selectedArtists: Artist[] = [];
-  while (selectedArtists.length < 2) {
-    const randArtistDoc = await getRandomArtist();
-    const artistData = (await randArtistDoc.get()).data() as Artist;
-    selectedArtists.push(artistData);
-  }
-  // update selected artists in room
-  firestore.doc(`rooms/${data.roomName}`).update({
-    initialArtist: {
-      id: selectedArtists[0]["id"],
-      name: selectedArtists[0]["name"],
-    },
-    finalArtist: {
-      id: selectedArtists[1]["id"],
-      name: selectedArtists[1]["name"],
-    },
-  });
-  return selectedArtists;
-});
-
-// search for artist
 exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
   const tokenResponse = await getSpotifyAuthToken(); // request access token
   const searchUrl = `https://api.spotify.com/v1/search?q=${data.artistName.replace(/\s/g, "%20")}`;
@@ -307,7 +428,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
       },
     });
     const searchResults = res.data.artists.items;
-    const artistsData: Artist[] = searchResults.map(({id, name, images}: Artist) => {
+    const artistsData: Artist[] = searchResults.map(({ id, name, images }: Artist) => {
       return {
         id,
         name,
@@ -321,6 +442,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
   }
 });
 
+/* TRACKS */
 function createTrackNameVariations(trackName: string) {
   const trackNameVariations = [
     trackName, // original
@@ -439,124 +561,13 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
   };
 });
 
-function resetRoom(roomName: string) {
-  try {
-    const roomRef = firestore.doc(`rooms/${roomName}`);
-    roomRef.update({
-      active: false,
-      players: [],
-      spectators: [],
-      initialArtist: {id: null, name: null},
-      finalArtist: {id: null, name: null},
-      type: "guest", // guest, user or competition
-      owner: null,
-      hardMode: false,
-      lastChange: admin.firestore.Timestamp.now(),
-    });
-    return true;
-  } catch (error) {
-    console.log(error);
-    return false;
-  }
-}
-
-exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate((change, context) => {
-  const promises = [];
-  const dataBefore = change.before.data();
-  const dataAfter = change.after.data();
-  // check for CHANGE (in initial and final artists)
-  if (
-    dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
-    dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
-  ) {
-    // if artists are not null, update lastChange
-    if (!(dataAfter["initialArtist"].id == null && dataAfter["finalArtist"].id == null)) {
-      console.log("UPDATING LAST CHANGE");
-      promises.push(change.after.ref.set({lastChange: admin.firestore.Timestamp.now()}, {merge: true}));
-    }
-  }
-
-  // check for CHANGE (in players and spectators)
-  if (
-    JSON.stringify(dataAfter["players"]) != JSON.stringify(dataBefore["players"]) ||
-    JSON.stringify(dataAfter["spectators"]) != JSON.stringify(dataBefore["spectators"])
-  ) {
-    // if room empty (no players or sepctators), reset room
-    if (dataAfter["players"].length === 0 && dataAfter["spectators"].length === 0) {
-      console.log("RESETTING ROOM");
-      promises.push(resetRoom(context.params.roomName));
-    }
-  }
-  // background functions must return a Promise back to firebase
-  return Promise.all(promises);
+/* STORED GENRES/PLAYLISTS */
+exports.getStoredPlaylists = functions.https.onCall(async () => {
+  return playlists;
 });
 
-exports.resetUnusedRooms = functions.pubsub.schedule("every day 04:00").onRun(async (context) => {
-  const roomsList = await firestore.collection("rooms").listDocuments();
-  const writeBatch = firestore.batch();
-
-  const timeNow = admin.firestore.Timestamp.now().toDate();
-  for (const roomRef of roomsList) {
-    const room = await roomRef.get();
-    const roomData = room.data();
-    if (!roomData) {
-      return;
-    }
-    // if lastChange in room was more than 3 mins ago
-    if (timeNow.getMinutes() - 3 > roomData["lastChange"].toDate().getMinutes()) {
-      writeBatch.set(roomRef, {
-        active: false,
-        players: [],
-        spectators: [],
-        initialArtist: {id: null, name: null},
-        finalArtist: {id: null, name: null},
-        type: "guest", // guest, user or competition
-        owner: null,
-        hardMode: false,
-        lastChange: admin.firestore.Timestamp.now(),
-      });
-    }
-  }
-
-  const resetRoomsResponse = await writeBatch.commit();
-  console.log("[EVERY 3 MINUTES] Clearing empty rooms!");
-  return resetRoomsResponse;
-});
-
-exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((context) => {
-  // Start listing users from the beginning, 1000 at a time.
-  const deleteGuestUsers = async (nextPageToken?: string) => {
-    // List batch of users, 1000 at a time.
-    try {
-      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
-      const dateNow = admin.firestore.Timestamp.now().toDate().getDate();
-      const toDelete: string[] = [];
-      listUsersResult.users.forEach((userRecord) => {
-        const creationDate = new Date(userRecord.metadata.creationTime).getDate();
-        if (dateNow != creationDate) {
-          toDelete.push(userRecord.uid);
-        }
-      });
-
-      // Delete Users
-      if (toDelete.length > 0) {
-        console.log(`[deleteGuestUsers] Deleting ${toDelete.length} users.`);
-        admin.auth().deleteUsers(toDelete);
-      } else {
-        console.log("[deleteGuestUsers] No guest users to delete.");
-      }
-
-      // Delete next batch of guest
-      if (listUsersResult.pageToken) {
-        deleteGuestUsers(listUsersResult.pageToken);
-      }
-      return toDelete.length > 0;
-    } catch (error) {
-      console.log("Error listing users:", error);
-      return false;
-    }
-  };
-  return deleteGuestUsers();
+exports.getStoredGenres = functions.https.onCall(async () => {
+  return Object.keys(playlists);
 });
 
 // // search for track by selected artist
@@ -739,11 +750,3 @@ exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((c
 //   // console.log(todaysArtistsData)
 //   return todaysArtistsData;
 // });
-
-exports.getStoredPlaylists = functions.https.onCall(async () => {
-  return playlists;
-});
-
-exports.getStoredGenres = functions.https.onCall(async () => {
-  return Object.keys(playlists);
-});
