@@ -8,10 +8,7 @@ import { GenreSelector } from "../components/GenreSelector";
 
 export function SinglePlayer() {
   const checkSongForArtists = httpsCallable(functions, "checkSongForArtists");
-  const getRandomStartingArtists = httpsCallable(
-    functions,
-    "getRandomStartingArtists"
-  );
+  const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
   const { user } = useContext(UserContext);
   const { setInfo } = useContext(InfoContext);
@@ -28,8 +25,7 @@ export function SinglePlayer() {
   // }, []);
 
   async function refreshArtists() {
-    const randGenre =
-      selectedGenres[Math.floor(Math.random() * selectedGenres.length)];
+    const randGenre = selectedGenres[Math.floor(Math.random() * selectedGenres.length)];
     const artistsResponse = await getRandomStartingArtists({
       genreName: randGenre,
       mixGenres,
@@ -47,10 +43,7 @@ export function SinglePlayer() {
       </span>
     );
     setFeaturePath(() => {
-      return [
-        { artist: artistsResponse.data[0], track: null },
-        { artist: artistsResponse.data[1] },
-      ];
+      return [{ artist: artistsResponse.data[0], track: null }, { artist: artistsResponse.data[1] }];
     });
     if (!result) {
       setStreak(0);
@@ -135,10 +128,7 @@ export function SinglePlayer() {
         return prevFeaturePath;
       });
       setStreak((prevStreak) => prevStreak + 1);
-      setCompletePaths((prevCompletePaths) => [
-        ...prevCompletePaths,
-        featurePath,
-      ]);
+      setCompletePaths((prevCompletePaths) => [...prevCompletePaths, featurePath]);
       setResult(true);
     } else {
       console.log("Wrong 😭");
@@ -152,8 +142,8 @@ export function SinglePlayer() {
 
   return (
     <>
-      {!user && <p>Connecting...</p>}
-      {user && selectedGenres.length === 0 ? (
+      {/* {!user && <p>Connecting...</p>} */}
+      {selectedGenres.length === 0 ? (
         <GenreSelector onSubmit={(genres) => setSelectedGenres([...genres])} />
       ) : (
         <div className="SinglePlayer">
@@ -162,16 +152,11 @@ export function SinglePlayer() {
           </pre>
           <FeaturePathFinder
             featurePath={featurePath}
-            onSubmitMiddle={(songNameGuess, nextArtistGuess) =>
-              submitMiddleSong(songNameGuess, nextArtistGuess)
-            }
+            onSubmitMiddle={(songNameGuess, nextArtistGuess) => submitMiddleSong(songNameGuess, nextArtistGuess)}
             onSubmitFinal={submitFinalSong}
           />
           <button
-            className={
-              "next-btn" +
-              (streak === 0 && featurePath.length > 0 ? " skip-btn" : "")
-            }
+            className={"next-btn" + (streak === 0 && featurePath.length > 0 ? " skip-btn" : "")}
             onClick={refreshArtists}
           >
             {featurePath.length === 0 ? "Start" : streak >= 1 ? "Next" : "Skip"}

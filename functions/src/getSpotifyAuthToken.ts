@@ -15,7 +15,7 @@ export async function getSpotifyAuthToken() {
     const response = await axios.post<Token>(
       "https://accounts.spotify.com/api/token",
       new URLSearchParams(data).toString(),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      {headers: {"Content-Type": "application/x-www-form-urlencoded"}}
     );
 
     return response;
