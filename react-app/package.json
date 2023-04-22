@@ -10,7 +10,6 @@
     "firebase": "^9.6.11",
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.20.0",
-    "qs": "^6.10.3",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.3.0",
