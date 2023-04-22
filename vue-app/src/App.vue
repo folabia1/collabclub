@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import Home from "./components/Home.vue";
+import TimeChallenge from "./components/TimeChallenge.vue";
 import TitleBar from "./components/TitleBar.vue";
+import { useAppStore } from "./pinia/store";
+
+const store = useAppStore();
 </script>
 
 <template>
   <TitleBar />
+  <Home v-if="store.screen === 'home'" />
+  <TimeChallenge v-if="store.screen === 'time-challenge'" />
 </template>
 
 <style scoped>

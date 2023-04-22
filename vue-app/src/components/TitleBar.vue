@@ -1,9 +1,13 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useAppStore } from "../pinia/store";
+
+const store = useAppStore();
+</script>
 
 <template>
   <div class="title-bar">
     <div class="menu-button">Menu</div>
-    <h1 class="title">Collab Club</h1>
+    <h1 class="title" @click="store.goToScreen('home')">Collab Club</h1>
     <div class="spacer" />
     <div class="shadow" />
   </div>
