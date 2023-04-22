@@ -15,6 +15,6 @@ This project will be available to try out soon.
 
 ## Built With
 
-- React
+- React / Vue
 - Spotify API
 - Firebase
