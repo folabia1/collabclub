@@ -101,10 +101,11 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
   const querySnapshot = await query.get();
   if (!querySnapshot.empty) {
     const doc = querySnapshot.docs[0];
-    console.log(doc.id);
+    console.log(`Room found: ${doc.id}`);
     // roomsRef.doc(doc.id).update({"active": true});
     return { name: doc.id, ...doc.data() };
   } else {
+    console.log(`Room not found.`);
     return null;
   }
 });
@@ -112,14 +113,19 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
 exports.joinRoom = functions.https.onCall(async (data, context) => {
   // user is not signed in
   if (!context.auth) {
+    console.log(`Unable to add user to room. No user provided.`);
     return { role: null };
+  }
+
+  if (typeof data["roomName"] !== "string") {
+    console.log(`Unable to add user to room. Argument "roomName" must be a string.`);
   }
 
   const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
   const snapshot = await roomRef.get();
   // if room does not exist
   if (!snapshot.exists) {
-    console.log(`Cannot leave Room ${data["roomName"]}. Room does not exist.`);
+    console.log(`Unable to add ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} to Room ${data["roomName"]}. Room does not exist.`);
     return { role: null };
   }
 
@@ -173,7 +179,9 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
 
   // if room does not exist
   if (!snapshot.exists || !snapshotData) {
-    console.log(`Cannot leave Room ${data["roomName"]}. Room does not exist.`);
+    console.log(
+      `Cannot remove ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} from room. Room ${data["roomName"]}. Room does not exist.`
+    );
     return false;
   }
 
@@ -252,10 +260,7 @@ exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate(
   const dataBefore = change.before.data();
   const dataAfter = change.after.data();
   // check for CHANGE (in initial and final artists)
-  if (
-    dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
-    dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
-  ) {
+  if (dataAfter["initialArtist"].id != dataBefore["initialArtist"].id || dataAfter["finalArtist"].id != dataBefore["finalArtist"].id) {
     // if artists are not null, update lastChange
     if (!(dataAfter["initialArtist"].id == null && dataAfter["finalArtist"].id == null)) {
       console.log("UPDATING LAST CHANGE");
@@ -486,10 +491,7 @@ function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardM
 // TODO: change to just search for track, allow two artists featuring on somone else's song
 // search for track by selected artist
 async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName: string, accessToken: string) {
-  const searchUrl = `https://api.spotify.com/v1/search?q=${songNameGuess.replace(/\s/g, "%20")}%20${artistName.replace(
-    /\s/g,
-    "%20"
-  )}`;
+  const searchUrl = `https://api.spotify.com/v1/search?q=${songNameGuess.replace(/\s/g, "%20")}%20${artistName.replace(/\s/g, "%20")}`;
 
   try {
     const res = await axios.get<{ tracks: { items: Track[] } }>(searchUrl, {
@@ -521,11 +523,7 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
   }
   const potentialTracks = [];
   for (const artist of ["currentArtist", "nextArtist"]) {
-    const res = await searchForTrackByArtistOnSpotify(
-      data.songNameGuess,
-      data[artist].name,
-      tokenResponse.data.access_token
-    );
+    const res = await searchForTrackByArtistOnSpotify(data.songNameGuess, data[artist].name, tokenResponse.data.access_token);
     if (res) {
       potentialTracks.push(...res.data.tracks.items);
     }
@@ -539,9 +537,8 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
     const trackArtistsIds = track.artists.map((artist) => artist.id);
     const trackArtistsNames = track.artists.map((artist) => artist.name);
 
-    const trackAccepted =
-      trackArtistsIds.includes(data["currentArtist"].id) && trackArtistsIds.includes(data["currentArtist"].id);
-    console.log(`Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: ${trackAccepted}`);
+    const trackAccepted = trackArtistsIds.includes(data["currentArtist"].id) && trackArtistsIds.includes(data["currentArtist"].id);
+    console.log(`Track ${trackAccepted ? "contains" : "does NOT contain"} ${data["currentArtist"].name} & ${data["nextArtist"].name}`);
 
     if (trackAccepted) {
       return {
@@ -552,7 +549,7 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
       };
     }
   }
-  console.log(`Track contains ${data["currentArtist"].name} & ${data["nextArtist"].name}: false`);
+  console.log(`Track does NOT contain ${data["currentArtist"].name} & ${data["nextArtist"].name}`);
   return {
     trackFound: false,
     trackId: null,
