@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import Home from "./components/Home.vue";
 import TitleBar from "./components/TitleBar.vue";
 </script>
 
 <template>
   <TitleBar />
+  <Home />
 </template>
 
 <style scoped>
