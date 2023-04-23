@@ -25,7 +25,7 @@ export const useAppStore = defineStore("app", {
   // initial state
   state: () => ({
     genres: {
-      "hip-hop": false,
+      "hip-hop": true,
       "afro-beats": false,
       "uk rap": false,
       "charts": false,
