@@ -1,6 +1,6 @@
-import { getSpotifyAuthToken } from "./getSpotifyAuthToken";
+import {getSpotifyAuthToken} from "./getSpotifyAuthToken";
 import axios from "axios";
-import { playlists } from "./playlists";
+import {playlists} from "./playlists";
 
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as functions from "firebase-functions";
@@ -28,6 +28,8 @@ const standardRequestHeaders = (accessToken: string) => ({
   "Authorization": `Bearer ${accessToken}`,
   "Content-Type": "application/json",
 });
+
+const maxPlayersPerRoom = 6;
 
 // exports.initializeFirestoreEmulator = functions.https.onCall(async (/* data*/) => {
 //   const writeBatch = firestore.batch();
@@ -62,6 +64,7 @@ const standardRequestHeaders = (accessToken: string) => ({
 /* USERS */
 exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((context) => {
   // Start listing users from the beginning, 1000 at a time.
+  // * Note: all users are guest users at the moment, so there is no validation for that
   const deleteGuestUsers = async (nextPageToken?: string) => {
     // List batch of users, 1000 at a time.
     try {
@@ -69,16 +72,16 @@ exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((c
       const dateNow = admin.firestore.Timestamp.now().toDate().getDate();
       const toDelete: string[] = [];
       listUsersResult.users.forEach((userRecord) => {
+        // add user to toDelete list if the date today is different to the user's creation date
         const creationDate = new Date(userRecord.metadata.creationTime).getDate();
-        if (dateNow != creationDate) {
-          toDelete.push(userRecord.uid);
-        }
+        if (dateNow != creationDate) toDelete.push(userRecord.uid);
       });
 
       // Delete Users
       if (toDelete.length > 0) {
-        console.log(`[deleteGuestUsers] Deleting ${toDelete.length} users.`);
-        admin.auth().deleteUsers(toDelete);
+        const deleteUsersResponse = await admin.auth().deleteUsers(toDelete);
+        if (deleteUsersResponse.successCount) console.log(`[deleteGuestUsers] ${toDelete.length} users successfully deleted.`);
+        if (deleteUsersResponse.failureCount) console.log(`[deleteGuestUsers] ${toDelete.length} users could not be deleted.`);
       } else {
         console.log("[deleteGuestUsers] No guest users to delete.");
       }
@@ -89,7 +92,7 @@ exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((c
       }
       return toDelete.length > 0;
     } catch (error) {
-      console.log("Error listing users:", error);
+      console.log("[deleteGuestUsers] Error deleting users:", error);
       return false;
     }
   };
@@ -97,100 +100,108 @@ exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((c
 });
 
 /* ROOM */
-exports.getRoom = functions.https.onCall(async (data = null) => {
+exports.getRoom = functions.https.onCall(async (data) => {
   const roomsRef = firestore.collection("rooms");
-  let query: admin.firestore.Query;
-  if (data?.activityLevel) {
-    query = roomsRef.where("players", "==", data.activityLevel === "active").limit(1);
-  } else {
-    query = roomsRef.limit(1);
-  }
+  const query = data?.activityLevel ? roomsRef.where("players", "==", data.activityLevel === "active").limit(1) : roomsRef.limit(1);
   const querySnapshot = await query.get();
-  if (!querySnapshot.empty) {
-    const doc = querySnapshot.docs[0];
-    console.log(`Room found: ${doc.id}`);
-    // roomsRef.doc(doc.id).update({"active": true});
-    return { name: doc.id, ...doc.data() };
-  } else {
-    console.log("Room not found.");
+
+  // handle error, room not found
+  if (querySnapshot.empty) {
+    console.log("[getRoom] Room not found.");
     return null;
   }
+
+  // return the room
+  const doc = querySnapshot.docs[0];
+  console.log(`[getRoom] Room found: ${doc.id}`);
+  return {name: doc.id, ...doc.data()};
 });
 
-exports.joinRoom = functions.https.onCall(async (data, context) => {
-  // user is not signed in
-  if (!context.auth) {
-    console.log("Unable to add user to room. No user provided.");
-    return { role: null };
+type joinRoomArgs = {
+  roomName: string;
+  role?: "Player" | "Spectator";
+};
+type joinRoomReturnValue = {
+  role: "Player" | "Spectator" | null;
+};
+exports.joinRoom = functions.https.onCall(async ({roomName, role}: joinRoomArgs, context): Promise<joinRoomReturnValue> => {
+  // if user is not signed in -> null
+  if (!context?.auth?.uid) {
+    console.log("[joinRoom] No user provided. Unable to add user to room.");
+    return {role: null};
   }
 
-  if (typeof data["roomName"] !== "string") {
-    console.log('Unable to add user to room. Argument "roomName" must be a string.');
+  // no room provided -> null
+  if (!roomName || typeof roomName !== "string") {
+    console.log(`[joinRoom] Argument "roomName" must be a string. Unable to add User ${context.auth.uid} to room.`);
   }
 
-  const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
+  const roomRef = firestore.doc(`rooms/${roomName}`);
   const snapshot = await roomRef.get();
-  // if room does not exist
-  if (!snapshot.exists) {
-    console.log(
-      `Unable to add ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} to Room ${data["roomName"]}. Room does not exist.`
-    );
-    return { role: null };
+  const snapshotData = snapshot.data();
+
+  // if room does not exist -> null
+  if (!snapshot.exists || !snapshotData) {
+    console.log(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
+    return {role: null};
   }
 
-  const snapshotData = snapshot.data();
-  if (!snapshotData) {
-    return;
-  }
-  // user is alreday a player in room
+  // user is alreday a player in room -> "Player"
   if (snapshotData["players"].includes(context.auth.uid)) {
-    return { role: "Player" };
+    console.log(`[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`);
+    return {role: "Player"};
   }
 
   // user is currently a spectator
   if (snapshotData["spectators"].includes(context.auth.uid)) {
-    if (snapshotData["players"].length < 6) {
-      // room has space for user
-      roomRef.update({
-        players: [...snapshotData["players"], context.auth.uid],
-      });
-      return { role: "Player" };
+    if (snapshotData["players"].length < maxPlayersPerRoom) {
+      // room has space for user -> "Player"
+      roomRef.update({players: [...snapshotData["players"], context.auth.uid]});
+      console.log(`[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`);
+      return {role: "Player"};
     } else {
-      // room does not have space for user
-      roomRef.update({
-        spectators: [...snapshotData["spectators"], context.auth.uid],
-      });
-      return { role: "Spectator" };
+      // room does not have space for user -> "Spectator"
+      roomRef.update({spectators: [...snapshotData["spectators"], context.auth.uid]});
+      console.log(`[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`);
+      return {role: "Spectator"};
     }
   }
 
   // user is not a player or spectator in room
   if (snapshotData["players"].length < 6) {
-    // room has space for user
-    roomRef.update({ active: true });
-    roomRef.update({
-      players: [...snapshotData["players"], context.auth.uid],
-    });
-    return { role: "Player" };
+    // room has space for user => "Player"
+    roomRef.update({active: true});
+    roomRef.update({players: [...snapshotData["players"], context.auth.uid]});
+    console.log(`[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`);
+    return {role: "Player"};
   } else {
-    // room does not have space for user
-    roomRef.update({
-      spectators: [...snapshotData["spectators"], context.auth.uid],
-    });
-    return { role: "Spectator" };
+    // room does not have space for user -> "Spectator"
+    roomRef.update({spectators: [...snapshotData["spectators"], context.auth.uid]});
+    console.log(`[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`);
+    return {role: "Spectator"};
   }
 });
 
-exports.leaveRoom = functions.https.onCall(async (data, context) => {
-  const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
+exports.leaveRoom = functions.https.onCall(async ({roomName}, context) => {
+  // if user is not signed in
+  if (!context?.auth?.uid) {
+    console.log("[leaveRoom] No user provided. Unable to remove user from room.");
+    return false;
+  }
+
+  // no room provided
+  if (!roomName || typeof roomName !== "string") {
+    console.log(`[leaveRoom] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`);
+    return false;
+  }
+
+  const roomRef = firestore.doc(`rooms/${roomName}`);
   const snapshot = await roomRef.get();
   const snapshotData = snapshot.data();
 
   // if room does not exist
   if (!snapshot.exists || !snapshotData) {
-    console.log(
-      `Cannot remove ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} from room. Room ${data["roomName"]}. Room does not exist.`
-    );
+    console.log(`[leaveRoom] Room does not exist. Unable to remove User ${context.auth.uid} from Room ${roomName}.`);
     return false;
   }
 
@@ -199,8 +210,8 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i] === context?.auth?.uid) {
       players.splice(i, 1);
-      roomRef.update({ players: players });
-      console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
+      roomRef.update({players: players});
+      console.log(`[leaveRoom] Successfully removed User ${context.auth.uid} from Room ${roomName}`);
       return true;
     }
   }
@@ -210,18 +221,42 @@ exports.leaveRoom = functions.https.onCall(async (data, context) => {
   for (let i = 0; i < spectators.length; i++) {
     if (spectators[i] === context?.auth?.uid) {
       spectators.splice(i, 1);
-      roomRef.update({ spectators: spectators });
-      console.log(`${context?.auth?.uid ?? "User"} stopped playing in Room ${data["roomName"]}`);
+      roomRef.update({spectators: spectators});
+      console.log(`[leaveRoom] Successfully removed User ${context.auth.uid} from Room ${roomName}`);
       return true;
     }
   }
 
   // user is not a player or spectator in room
-  console.log(`${context?.auth?.uid ?? "User"} is not in Room ${data["roomName"]}`);
+  console.log(`[leaveRoom] User ${context.auth.uid} is not in Room ${roomName}. Unable to remove user from room.`);
   return false;
 });
 
-exports.setNewRoomArtists = functions.https.onCall(async (data) => {
+exports.setNewRoomArtists = functions.https.onCall(async ({roomName, context}) => {
+  // if user is not signed in
+  if (!context?.auth?.uid) {
+    console.log("[setNewRoomArtists] No user provided. Unable to set new artists for room.");
+    return false;
+  }
+
+  // no room provided
+  if (!roomName || typeof roomName !== "string") {
+    console.log(`[setNewRoomArtists] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`);
+    return false;
+  }
+
+  const roomRef = firestore.doc(`rooms/${roomName}`);
+  const snapshot = await roomRef.get();
+  const snapshotData = snapshot.data();
+
+  // if room does not exist -> null
+  if (!snapshot.exists || !snapshotData) {
+    console.log(`[setNewRoomArtists] Room does not exist. Unable to remove User ${context.auth.uid} from Room ${roomName}.`);
+    return false;
+  }
+
+  // TODO: add check that the user is a Player in the Room
+
   // select 2 random artists from artists collection
   const selectedArtists: Artist[] = [];
   while (selectedArtists.length < 2) {
@@ -230,7 +265,7 @@ exports.setNewRoomArtists = functions.https.onCall(async (data) => {
     selectedArtists.push(artistData);
   }
   // update selected artists in room
-  firestore.doc(`rooms/${data.roomName}`).update({
+  firestore.doc(`rooms/${roomName}`).update({
     initialArtist: {
       id: selectedArtists[0]["id"],
       name: selectedArtists[0]["name"],
@@ -240,6 +275,10 @@ exports.setNewRoomArtists = functions.https.onCall(async (data) => {
       name: selectedArtists[1]["name"],
     },
   });
+  console.log(
+    `[setNewRoomArtists] Successfully updated artists in Room ${roomName}: ` +
+      `${selectedArtists[0]["name"]} and ${selectedArtists[1]["name"]}`
+  );
   return selectedArtists;
 });
 
@@ -250,8 +289,8 @@ function resetRoom(roomName: string) {
       active: false,
       players: [],
       spectators: [],
-      initialArtist: { id: null, name: null },
-      finalArtist: { id: null, name: null },
+      initialArtist: {id: null, name: null},
+      finalArtist: {id: null, name: null},
       type: "guest", // guest, user or competition
       owner: null,
       hardMode: false,
@@ -264,17 +303,14 @@ function resetRoom(roomName: string) {
   }
 }
 
-exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate((change, context) => {
+exports.onRoomUpdated = functions.firestore.document("/rooms/{roomName}").onUpdate((change, context) => {
   const promises = [];
   const dataBefore = change.before.data();
   const dataAfter = change.after.data();
   // check for CHANGE (in initial and final artists)
   if (dataAfter["initialArtist"].id != dataBefore["initialArtist"].id || dataAfter["finalArtist"].id != dataBefore["finalArtist"].id) {
-    // if artists are not null, update lastChange
-    if (!(dataAfter["initialArtist"].id == null && dataAfter["finalArtist"].id == null)) {
-      console.log("UPDATING LAST CHANGE");
-      promises.push(change.after.ref.set({ lastChange: admin.firestore.Timestamp.now() }, { merge: true }));
-    }
+    promises.push(change.after.ref.set({lastChange: admin.firestore.Timestamp.now()}, {merge: true}));
+    console.log(`[onRoomUpdated] Updating lastChange for Room ${context.params.roomName}.`);
   }
 
   // check for CHANGE (in players and spectators)
@@ -282,46 +318,51 @@ exports.updateRoom = functions.firestore.document("/rooms/{roomName}").onUpdate(
     JSON.stringify(dataAfter["players"]) != JSON.stringify(dataBefore["players"]) ||
     JSON.stringify(dataAfter["spectators"]) != JSON.stringify(dataBefore["spectators"])
   ) {
-    // if room empty (no players or sepctators), reset room
+    // if room empty (no players or spectators), reset room
     if (dataAfter["players"].length === 0 && dataAfter["spectators"].length === 0) {
-      console.log("RESETTING ROOM");
+      console.log(`[onRoomUpdated] Resetting Room ${context.params.roomName}. Room is empty.`);
       promises.push(resetRoom(context.params.roomName));
     }
   }
+
   // background functions must return a Promise back to firebase
   return Promise.all(promises);
 });
 
 exports.resetUnusedRooms = functions.pubsub.schedule("every day 04:00").onRun(async (context) => {
-  const roomsList = await firestore.collection("rooms").listDocuments();
-  const writeBatch = firestore.batch();
+  try {
+    const roomsList = await firestore.collection("rooms").listDocuments();
+    const writeBatch = firestore.batch();
 
-  const timeNow = admin.firestore.Timestamp.now().toDate();
-  for (const roomRef of roomsList) {
-    const room = await roomRef.get();
-    const roomData = room.data();
-    if (!roomData) {
-      return;
+    const timeNow = admin.firestore.Timestamp.now().toDate();
+    for (const roomRef of roomsList) {
+      const room = await roomRef.get();
+      const roomData = room.data();
+      if (!roomData) return;
+
+      // if lastChange in room was more than 3 mins ago
+      if (timeNow.getMinutes() - roomData.lastChange.toDate().getMinutes() > 3) {
+        writeBatch.set(roomRef, {
+          active: false,
+          players: [],
+          spectators: [],
+          initialArtist: {id: null, name: null},
+          finalArtist: {id: null, name: null},
+          type: "guest", // guest, user or competition
+          owner: null,
+          hardMode: false,
+          lastChange: admin.firestore.Timestamp.now(),
+        });
+      }
     }
-    // if lastChange in room was more than 3 mins ago
-    if (timeNow.getMinutes() - 3 > roomData["lastChange"].toDate().getMinutes()) {
-      writeBatch.set(roomRef, {
-        active: false,
-        players: [],
-        spectators: [],
-        initialArtist: { id: null, name: null },
-        finalArtist: { id: null, name: null },
-        type: "guest", // guest, user or competition
-        owner: null,
-        hardMode: false,
-        lastChange: admin.firestore.Timestamp.now(),
-      });
-    }
+
+    // background functions must return a Promise back to firebase
+    const resetRoomsResponse = await writeBatch.commit();
+    return resetRoomsResponse;
+  } catch (error) {
+    console.log(`[resetUnusedRooms] Unable to reset unused rooms - ${error}`);
+    return;
   }
-
-  const resetRoomsResponse = await writeBatch.commit();
-  console.log("[EVERY 3 MINUTES] Clearing empty rooms!");
-  return resetRoomsResponse;
 });
 
 /* ARTISTS */
@@ -414,7 +455,7 @@ async function getMultipleArtistsFromSpotify(artistsIds: string[], accessToken: 
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
+exports.getRandomStartingArtists = functions.https.onCall(async ({genreName}: { genreName: string | undefined }) => {
   // select random genre if one is not passed as argument
   const genres = Object.keys(playlists);
   const randomGenre = genres[Math.floor(Math.random() * genres.length)];
@@ -462,7 +503,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
       headers: standardRequestHeaders(tokenResponse.data.access_token),
     });
     const searchResults = res.data.artists.items;
-    const artistsData: Artist[] = searchResults.map(({ id, name, images }: Artist) => {
+    const artistsData: Artist[] = searchResults.map(({id, name, images}: Artist) => {
       return {
         id,
         name,
@@ -493,25 +534,11 @@ function createTrackNameVariations(trackName: string) {
   return [...new Set(trackNameVariations)];
 }
 
-function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardMode = false) {
+function isTrackNameSimilar(songNameGuess: string, actualSongName: string, strictMode = false) {
   const variations = createTrackNameVariations(actualSongName);
-  if (hardMode) {
-    for (const variation of variations) {
-      if (
-        songNameGuess.localeCompare(variation, undefined, {
-          sensitivity: "base",
-        }) === 0
-      ) {
-        return true;
-      }
-    }
-  } else {
-    // easy mode
-    for (const variation of variations) {
-      if (Math.abs(songNameGuess.length - variation.length) <= 1) {
-        return true;
-      }
-    }
+  for (const variation of variations) {
+    if (strictMode && songNameGuess.localeCompare(variation, undefined, {sensitivity: "base"}) === 0) return true;
+    if (!strictMode && songNameGuess.toLowerCase().startsWith(actualSongName.toLowerCase().slice(0, 4))) return true;
   }
   return false;
 }
@@ -539,15 +566,13 @@ function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardM
 // }
 
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
-async function searchForTracks({ trackName, artistName, accessToken, limit }: SearchArgs) {
+async function searchForTracks({trackName, artistName, accessToken, limit}: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
   try {
     // do initial request to work out how many more requests are needed to get all songs
     const initialResponse = await axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
       params: {
-        q:
-          `${trackName.replace(/\s/g, "%20")}%20track:${trackName.replace(/\s/g, "%20")}` +
-          `${artistName ? `%20artist:${artistName.replace(/\s/g, "%20")}` : ""}`,
+        q: `${trackName.toLowerCase().replace(/\s/g, "%20")}` + `${artistName ? `%20artist:${artistName.replace(/\s/g, "%20")}` : ""}`,
         type: "track",
         offset: "0",
         limit: `${Math.max(limit ?? 50, 50)}`,
@@ -653,19 +678,24 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
  * @param {Object} data
  * @param {string} data.trackName the Track name value to be used in the search query
  * @param {string} data.artistName the Artist name value to be used in the search query
- * @param {string} data.requireMulipleArtists
- * @param {string} data.requireThisArtist
- * @param {string} data.limit
- * @param { boolean} data.strictMode whether to the name
+ * @param {boolean} data.requireMulipleArtists
+ * @param {boolean} data.requireThisArtist
+ * @param {number} data.limit
+ * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
  */
 exports.searchForTracks = functions.https.onCall(
-  async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
+  async ({trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode}) => {
     // request spotify access token
     const tokenResponse = await getSpotifyAuthToken();
     if (!tokenResponse) return;
 
     // search for tracks matching trackName and artistName
-    const tracksResponse = await searchForTracks({ trackName, artistName, accessToken: tokenResponse.data.access_token, limit });
+    const tracksResponse = await searchForTracks({
+      trackName,
+      artistName: requireThisArtist ? artistName : undefined,
+      accessToken: tokenResponse.data.access_token,
+      limit: limit ?? 50,
+    });
     if (!tracksResponse) return;
 
     // apply filters
@@ -675,8 +705,7 @@ exports.searchForTracks = functions.https.onCall(
       return (
         (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
         (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
-        ((!strictMode && trackName.toLowerCase().startsWith(track.name.toLowerCase().slice(0, 4))) ||
-          isTrackNameSimilar(trackName, track.name, true)) // name is right (or almost right)
+        isTrackNameSimilar(trackName, track.name, strictMode) // name is right (or almost right)
       );
     });
     console.log(`[searchForTracks] ${tracksResponse.data.length} tracks found and filtered to ${tracks.length}`);
