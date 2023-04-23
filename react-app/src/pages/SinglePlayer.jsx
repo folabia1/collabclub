@@ -31,19 +31,19 @@ export function SinglePlayer() {
       mixGenres,
     });
     console.log(
-      `Received new artists. %c${artistsResponse.data[0].name} and ${artistsResponse.data[1].name}`,
+      `Received new artists. %c${artistsResponse.data.artists[0].name} and ${artistsResponse.data.artists[1].name}`,
       "font-weight: bold"
     );
     setInfo(
       <span>
         Received new artists.{" "}
         <strong>
-          {artistsResponse.data[0].name} and {artistsResponse.data[1].name}
+          {artistsResponse.data.artists[0].name} and {artistsResponse.data.artists[1].name}
         </strong>
       </span>
     );
     setFeaturePath(() => {
-      return [{ artist: artistsResponse.data[0], track: null }, { artist: artistsResponse.data[1] }];
+      return [{ artist: artistsResponse.data.artists[0], track: null }, { artist: artistsResponse.data.artists[1] }];
     });
     if (!result) {
       setStreak(0);

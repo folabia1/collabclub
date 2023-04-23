@@ -7,10 +7,10 @@ import { onMounted } from "vue";
 import ArtistImage from "./ArtistImage.vue";
 import TrackSearchInput from "./TrackSearchInput.vue";
 
-const getRandomStartingArtists = httpsCallable<{ genreName: string | null | undefined }, Artist[]>(
-  functions,
-  "getRandomStartingArtists"
-);
+const getRandomStartingArtists = httpsCallable<
+  { genreName: string | null | undefined },
+  { genre: string; artists: Artist[] }
+>(functions, "getRandomStartingArtists");
 
 const store = useAppStore();
 
@@ -19,8 +19,9 @@ const refreshArtists = async () => {
   store.setRandomGameGenreFromSelected();
   try {
     const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
-    store.pushPathArtist(artistsResponse.data[0]);
-    store.setFinalArtist(artistsResponse.data[1]);
+    store.pushPathArtist(artistsResponse.data.artists[0]);
+    store.setFinalArtist(artistsResponse.data.artists[1]);
+    store.setCurrentGameGenre(artistsResponse.data.genre);
   } catch (error) {
     console.error(error);
   }
@@ -32,7 +33,12 @@ onMounted(refreshArtists);
 <template>
   <div class="time-challenge">
     <div class="genre-chips">
-      <GenreChip v-for="selectedGenre in store.selectedGenres" :text="selectedGenre" :active="true" :disabled="true" />
+      <GenreChip
+        v-for="selectedGenre in store.selectedGenres"
+        :text="selectedGenre"
+        :active="selectedGenre === store.currentGameGenre"
+        :disabled="true"
+      />
     </div>
 
     <div class="artists-in-play">

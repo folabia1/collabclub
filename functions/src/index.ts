@@ -433,14 +433,16 @@ exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: 
 
   // handle error getting artists
   if (selectedArtistsData.length < 2) {
-    console.log(`Unable to select Starting Artists.`);
+    console.log("Unable to select Starting Artists.");
     return;
   }
 
   // return selected artists
-  // TODO: include genre in return
   console.log(`Starting Artists selected: ${selectedArtistsData[0].name} and ${selectedArtistsData[1].name}`);
-  return selectedArtistsData;
+  return {
+    genre: selectedGenre,
+    artists: selectedArtistsData,
+  };
 });
 
 exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
@@ -514,7 +516,6 @@ function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardM
   return false;
 }
 
-// TODO: change to just search for track, allow two artists featuring on somone else's song
 // search for track by selected artist
 async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName: string, accessToken: string) {
   const searchUrl = "https://api.spotify.com/v1/search";
@@ -587,9 +588,9 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
   const potentialTracks = [];
   for (const artist of ["currentArtist", "nextArtist"]) {
     const res = await searchForTrackByArtistOnSpotify(data.songNameGuess, data[artist].name, tokenResponse.data.access_token);
-    if (res) {
-      potentialTracks.push(...res.data.tracks.items);
-    }
+    if (!res) continue;
+
+    potentialTracks.push(...res.data.tracks.items);
   }
 
   // check if song features both artists

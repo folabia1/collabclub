@@ -1,6 +1,5 @@
 import { defineStore } from "pinia";
 
-export type GenreName = "hip-hop" | "afro-beats" | "uk rap" | "charts" | "latinx" | "old-school hip-hop";
 export type Artist = {
   id: string;
   name: string;
@@ -32,8 +31,8 @@ export const useAppStore = defineStore("app", {
       "charts": false,
       "latinx": false,
       "old-school hip-hop": false,
-    },
-    currentGameGenre: null as GenreName | null,
+    } as { [index: string]: boolean },
+    currentGameGenre: null as string | null,
     screen: "home",
     pathArtists: [] as PathArtist[],
     finalArtist: null as Artist | null,
@@ -41,11 +40,11 @@ export const useAppStore = defineStore("app", {
 
   // computed values
   getters: {
+    genreNames: (state) => Object.keys(state.genres),
     selectedGenres: (state) =>
       Object.entries(state.genres)
         .filter(([_, isSelected]) => isSelected)
-        .map(([name, _]) => name) as GenreName[],
-    genreNames: (state) => Object.keys(state.genres) as GenreName[],
+        .map(([name, _]) => name),
     currentPathArtist: (state) => {
       if (state.pathArtists.length === 0) return null;
       return state.pathArtists[state.pathArtists.length - 1];
@@ -59,8 +58,12 @@ export const useAppStore = defineStore("app", {
       this.screen = gameMode;
     },
     /* Genres */
-    toggleGenreSelected(genreName: GenreName) {
+    toggleGenreSelected(genreName: string) {
       this.genres[genreName] = !this.genres[genreName];
+    },
+    setCurrentGameGenre(genreName: string) {
+      this.genres[genreName] = true;
+      this.currentGameGenre = genreName;
     },
     resetCurrentGameGenre() {
       this.currentGameGenre = null;
