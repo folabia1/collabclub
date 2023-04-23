@@ -6,6 +6,21 @@ export type Artist = {
   name: string;
   photoUrl: string;
 };
+export type PathArtist = {
+  id: string;
+  name: string;
+  photoUrl: string;
+  track?: PathTrack;
+};
+export type Track = {
+  id: string;
+  name: string;
+  artists: Artist[];
+};
+export type PathTrack = {
+  name: string;
+  artistNames: string[];
+};
 
 export const useAppStore = defineStore("app", {
   // initial state
@@ -20,7 +35,7 @@ export const useAppStore = defineStore("app", {
     },
     currentGameGenre: null as GenreName | null,
     screen: "home",
-    pathArtists: [] as Artist[],
+    pathArtists: [] as PathArtist[],
     finalArtist: null as Artist | null,
   }),
 
@@ -58,7 +73,7 @@ export const useAppStore = defineStore("app", {
       this.pathArtists = [];
       this.finalArtist = null;
     },
-    pushPathArtist(artist: Artist) {
+    pushPathArtist(artist: PathArtist) {
       this.pathArtists.push(artist);
     },
     setFinalArtist(artist: Artist) {

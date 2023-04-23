@@ -12,11 +12,9 @@ export async function getSpotifyAuthToken() {
   };
 
   try {
-    const response = await axios.post<Token>(
-      "https://accounts.spotify.com/api/token",
-      new URLSearchParams(data).toString(),
-      {headers: {"Content-Type": "application/x-www-form-urlencoded"}}
-    );
+    const response = await axios.post<Token>("https://accounts.spotify.com/api/token", new URLSearchParams(data).toString(), {
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    });
 
     return response;
   } catch (error) {

@@ -7,7 +7,7 @@ import { GenreSelector } from "../components/GenreSelector";
 // import { PlaylistsContext } from "../App";
 
 export function SinglePlayer() {
-  const checkSongForArtists = httpsCallable(functions, "checkSongForArtists");
+  const checkSongForTwoArtists = httpsCallable(functions, "checkSongForTwoArtists");
   const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
   const { user } = useContext(UserContext);
@@ -64,7 +64,7 @@ export function SinglePlayer() {
         name: nextArtistGuess["name"],
       },
     };
-    const trackResponse = await checkSongForArtists(songGuessData);
+    const trackResponse = await checkSongForTwoArtists(songGuessData);
 
     if (trackResponse.data.trackFound) {
       setFeaturePath((prevFeaturePath) => {
@@ -117,7 +117,7 @@ export function SinglePlayer() {
         name: featurePath[featurePath.length - 1]["artist"]["name"],
       },
     };
-    const trackResponse = await checkSongForArtists(songGuessData);
+    const trackResponse = await checkSongForTwoArtists(songGuessData);
     if (trackResponse.data.trackFound) {
       setFeaturePath((prevFeaturePath) => {
         prevFeaturePath[prevFeaturePath.length - 2]["track"] = {

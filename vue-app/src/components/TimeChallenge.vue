@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import GenreChip from "./GenreChip.vue";
-import { useAppStore } from "../pinia/store";
+import { Artist, useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { onMounted } from "vue";
 import ArtistImage from "./ArtistImage.vue";
 import TrackSearchInput from "./TrackSearchInput.vue";
 
-const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
+const getRandomStartingArtists = httpsCallable<{ genreName: string | null | undefined }, Artist[]>(
+  functions,
+  "getRandomStartingArtists"
+);
 
 const store = useAppStore();
 
@@ -49,7 +52,7 @@ onMounted(refreshArtists);
 
     <button @click="refreshArtists">Refresh Artists</button>
 
-    <TrackSearchInput />
+    <TrackSearchInput v-if="store?.currentPathArtist?.name" :artist-name="store.currentPathArtist.name" />
   </div>
 </template>
 

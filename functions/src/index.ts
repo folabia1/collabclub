@@ -14,6 +14,7 @@ type Artist = {
   name: string;
   photoUrl?: string;
   images?: { url: string }[];
+  track?: Track;
 };
 
 type Track = {
@@ -111,7 +112,7 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
     // roomsRef.doc(doc.id).update({"active": true});
     return { name: doc.id, ...doc.data() };
   } else {
-    console.log(`Room not found.`);
+    console.log("Room not found.");
     return null;
   }
 });
@@ -119,19 +120,21 @@ exports.getRoom = functions.https.onCall(async (data = null) => {
 exports.joinRoom = functions.https.onCall(async (data, context) => {
   // user is not signed in
   if (!context.auth) {
-    console.log(`Unable to add user to room. No user provided.`);
+    console.log("Unable to add user to room. No user provided.");
     return { role: null };
   }
 
   if (typeof data["roomName"] !== "string") {
-    console.log(`Unable to add user to room. Argument "roomName" must be a string.`);
+    console.log('Unable to add user to room. Argument "roomName" must be a string.');
   }
 
   const roomRef = firestore.doc(`rooms/${data["roomName"]}`);
   const snapshot = await roomRef.get();
   // if room does not exist
   if (!snapshot.exists) {
-    console.log(`Unable to add ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} to Room ${data["roomName"]}. Room does not exist.`);
+    console.log(
+      `Unable to add ${context?.auth?.uid ? `User ${context.auth.uid}` : "user"} to Room ${data["roomName"]}. Room does not exist.`
+    );
     return { role: null };
   }
 
@@ -370,10 +373,8 @@ async function getRandomArtistFromGenre(genreName: string) {
       const response = await axios.get(searchArtistUrl, {
         headers: standardRequestHeaders(tokenResponse.data.access_token),
       });
-      console.log(response.data.images[response.data.images.length - 1]["url"]);
       const photoUrl = response.data.images[response.data.images.length - 1]["url"] ?? null;
       randArtist["photoUrl"] = photoUrl;
-      console.log(randArtist);
       return randArtist;
     } catch (error) {
       console.log(`[getRandomArtistFromGenre-searchArtist] ${error}`);
@@ -385,34 +386,72 @@ async function getRandomArtistFromGenre(genreName: string) {
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
-  // select 2 random artists from artists collection
+// async function getMultipleArtistsFromSpotify(artistsIds: string[], accessToken: string) {
+//   try {
+//     const responses = [];
+//     // endpoint only returns 50 artists at a time so
+//     // we send multiple requests and join the responses
+//     for (let i = 0; i < Math.ceil(artistsIds.length / 50); i++) {
+//       const searchUrl = "https://api.spotify.com/v1/artists";
 
+//       const artistsResponse = await axios.get<{ artists: Artist[] }>(searchUrl, {
+//         params: {
+//           ids: artistsIds.slice(50 * i, 50 * i + 50).toString(),
+//         },
+//         headers: standardRequestHeaders(accessToken),
+//       });
+//       responses.push(artistsResponse);
+//     }
+//     let artists: Artist[] = [];
+//     const batchedArtistsResponses = await Promise.all(responses);
+//     batchedArtistsResponses.forEach((response) => {
+//       artists = artists.concat(response.data.artists);
+//     });
+//     return artists;
+//   } catch (error) {
+//     console.log(`[getMultipleArtistsFromSpotify] ${error}`);
+//     return;
+//   }
+// }
+
+exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
+  // select random genre if one is not passed as argument
   const genres = Object.keys(playlists);
   const randomGenre = genres[Math.floor(Math.random() * genres.length)];
   const selectedGenre = genreName && genres.includes(genreName) ? genreName : randomGenre;
-  const selectedArtists: { [index: string]: Artist } = {};
 
+  // select 2 random artists in the selected genre
+  const selectedArtists: { [index: string]: Artist } = {};
   const maxRetries = 10;
   for (let i = 0; i < maxRetries && Object.keys(selectedArtists).length < 2; i++) {
     const randArtistData = await getRandomArtistFromGenre(selectedGenre);
-    if (randArtistData?.id) {
-      selectedArtists[randArtistData.id] = randArtistData;
-    }
+    if (!randArtistData?.id) continue;
+
+    selectedArtists[randArtistData.id] = randArtistData;
   }
   const selectedArtistsData = Object.values(selectedArtists);
 
+  // handle error getting artists
+  if (selectedArtistsData.length < 2) {
+    console.log(`Unable to select Starting Artists.`);
+    return;
+  }
+
+  // return selected artists
+  // TODO: include genre in return
+  console.log(`Starting Artists selected: ${selectedArtistsData[0].name} and ${selectedArtistsData[1].name}`);
   return selectedArtistsData;
 });
 
 exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
   const tokenResponse = await getSpotifyAuthToken(); // request access token
   if (!tokenResponse) return;
-  const searchUrl = `https://api.spotify.com/v1/search?q=${data.artistName.replace(/\s/g, "%20")}`;
+  const searchUrl = "https://api.spotify.com/v1/search";
 
   try {
     const res = await axios.get(searchUrl, {
       params: {
+        q: `${data.artistName.replace(/\s/g, "%20")}`,
         type: "artist",
         limit: "4",
         offset: "0",
@@ -454,7 +493,6 @@ function createTrackNameVariations(trackName: string) {
 
 function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardMode = false) {
   const variations = createTrackNameVariations(actualSongName);
-  console.log(variations);
   if (hardMode) {
     for (const variation of variations) {
       if (
@@ -479,11 +517,12 @@ function isTrackNameSimilar(songNameGuess: string, actualSongName: string, hardM
 // TODO: change to just search for track, allow two artists featuring on somone else's song
 // search for track by selected artist
 async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName: string, accessToken: string) {
-  const searchUrl = `https://api.spotify.com/v1/search?q=${songNameGuess.replace(/\s/g, "%20")}%20${artistName.replace(/\s/g, "%20")}`;
+  const searchUrl = "https://api.spotify.com/v1/search";
 
   try {
     const res = await axios.get<{ tracks: { items: Track[] } }>(searchUrl, {
       params: {
+        q: `${songNameGuess.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
         type: "track",
         limit: "5",
         offset: "0",
@@ -498,12 +537,53 @@ async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName
   }
 }
 
-exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
+async function searchForTracksMatchingTrackNameAndArtist(trackName: string, artistName: string, accessToken: string) {
+  const url = "https://api.spotify.com/v1/search";
+  try {
+    // do initial request to work out how many more requests are needed to get all songs
+    const initialResponse = await axios.get(url, {
+      params: {
+        q: `${trackName.replace(/\s/g, "%20")}%20track:${trackName.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
+        type: "track",
+        offset: "0",
+        limit: "50",
+      },
+      headers: standardRequestHeaders(accessToken),
+    });
+
+    // batch all remaining requests together and await them all
+    const numAdditionalRequestsToMake = Math.ceil((initialResponse.data.tracks.total - 50) / 50);
+    const batchRequests = [];
+    for (let i = 0; i < numAdditionalRequestsToMake; i++) {
+      batchRequests.push(
+        axios.get(url, {
+          params: {
+            q: `track:${trackName.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
+            type: "track",
+            offset: `${(i + 1) * 50}`,
+            limit: "50",
+          },
+          headers: standardRequestHeaders(accessToken),
+        })
+      );
+    }
+
+    // combine initial response with batched response
+    const batchResponses = await Promise.all(batchRequests);
+    batchResponses.unshift(initialResponse);
+
+    return batchResponses;
+  } catch (error) {
+    console.log(`Unable to retrieve songs from Spotify: ${error}`);
+    return null;
+  }
+}
+
+exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) => {
   // search for tracks matching name and artist
   const tokenResponse = await getSpotifyAuthToken(); // request access token
-  if (!tokenResponse) {
-    return;
-  }
+  if (!tokenResponse) return;
+
   const potentialTracks = [];
   for (const artist of ["currentArtist", "nextArtist"]) {
     const res = await searchForTrackByArtistOnSpotify(data.songNameGuess, data[artist].name, tokenResponse.data.access_token);
@@ -532,6 +612,8 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
       };
     }
   }
+
+  // none of the potential tracks feature both artists
   console.log(`Track does NOT contain ${data["currentArtist"].name} & ${data["nextArtist"].name}`);
   return {
     trackFound: false,
@@ -539,6 +621,74 @@ exports.checkSongForArtists = functions.https.onCall(async (data, context) => {
     trackName: null,
     trackArtists: null,
   };
+});
+
+/**
+ * Takes a track name and artist name as search query and seaches Spotify API for
+ * tracks. Filters to only songs that have MULTIPLE artists including the artistName.
+ *
+ * When using the `strictMode` flag it filters tracks more strongly, only keeping the
+ * track(s) with exactly the same name.
+ *
+ * @param {Object} data
+ * @param {string} data.trackName the Track name value to be used in the search query
+ * @param {string} data.artistName the Artist name value to be used in the search query
+ * @param { boolean} data.strictMode whether to the name
+ */
+exports.searchForTracksFeaturingArtistByTrackName = functions.https.onCall(async ({ trackName, artistName, strictMode }) => {
+  // request spotify access token
+  const tokenResponse = await getSpotifyAuthToken();
+  if (!tokenResponse) return;
+
+  // search for tracks matching trackName and artistName
+  const batchedTrackResponses = await searchForTracksMatchingTrackNameAndArtist(trackName, artistName, tokenResponse.data.access_token);
+  if (!batchedTrackResponses) return;
+
+  // filter to only keep tracks with multiple artists including this artist
+  // also filtering out tracks that don't have the same title as data.trackName
+  let tracksFeaturingThisArtist: Track[] = [];
+  batchedTrackResponses.forEach((response) => {
+    const tracksInResponse = response.data.tracks.items;
+    const tracksWithMutlipleArtistsIncludingThisArtist = tracksInResponse.filter((track: Track) => {
+      return (
+        track.artists.length > 1 && // more than one artist
+        track.artists.some((artist) => artist.name === artistName) && // correct artist
+        ((!strictMode && trackName.toLowerCase().startsWith(track.name.toLowerCase().slice(0, 4))) ||
+          isTrackNameSimilar(trackName, track.name, true)) // name is right (or almost right)
+      );
+    });
+    tracksFeaturingThisArtist = tracksFeaturingThisArtist.concat(tracksWithMutlipleArtistsIncludingThisArtist);
+  });
+  return tracksFeaturingThisArtist;
+
+  // // we now assume that all the `tracksFeaturingThisArtist` are the same track
+  // // since we checked the song name against what the user provided
+  // const otherArtistsFeaturedOnTheTrack: { [index: string]: Artist } = {};
+  // tracksFeaturingThisArtist.forEach((track) => {
+  //   track.artists.forEach((artist) => {
+  //     if (artist.name !== artistName && !otherArtistsFeaturedOnTheTrack[artist.id]) {
+  //       otherArtistsFeaturedOnTheTrack[artist.id] = {
+  //         id: artist.id,
+  //         name: artist.name,
+  //         track: {
+  //           id: track.id,
+  //           name: track.name,
+  //           artists: track.artists,
+  //         },
+  //       };
+  //     }
+  //   });
+  // });
+
+  // // get the photoUrls for these artists
+  // const artistsIds = Object.keys(otherArtistsFeaturedOnTheTrack);
+  // const fullArtists = await getMultipleArtistsFromSpotify(artistsIds, tokenResponse.data.access_token);
+  // if (!fullArtists) return otherArtistsFeaturedOnTheTrack;
+
+  // fullArtists.forEach((artist) => {
+  //   otherArtistsFeaturedOnTheTrack[artist.id].photoUrl = artist.images?.[artist.images?.length - 1]?.url ?? "";
+  // });
+  // return otherArtistsFeaturedOnTheTrack;
 });
 
 /* STORED GENRES/PLAYLISTS */
@@ -573,37 +723,6 @@ exports.getStoredGenres = functions.https.onCall(async () => {
 //     console.log(`[getArtistsFromPlaylist] ${error}`);
 //     return;
 //   }
-// }
-
-// // returns 50 artists at a time
-// async function getMultipleArtistsFromSpotify(
-//   artistsIds: string[],
-//   accessToken: string
-// ) {
-//   const responses = [];
-//   for (let i = 0; i < Math.ceil(artistsIds.length / 50); i++) {
-//     const searchUrl = "https://api.spotify.com/v1/artists";
-//     try {
-//       const res = await axios.get<{ artists: Artist[] }>(searchUrl, {
-//         params: {
-//           ids: artistsIds.slice(50 * i, 50 * i + 50).toString(),
-//         },
-//         headers: {
-//           "Accept": "application/json",
-//           // 'Access-Control-Allow-Origin': '*',
-//           "Authorization": `Bearer ${accessToken}`,
-//           "Content-Type": "application/json",
-//         },
-//       });
-//       responses.push(res);
-//       // console.log(res.data)
-//       // return res;
-//     } catch (error) {
-//       console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-//       return;
-//     }
-//   }
-//   return Promise.all(responses);
 // }
 
 // exports.setNewStoredArtists = functions.pubsub
