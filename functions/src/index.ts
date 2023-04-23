@@ -22,6 +22,12 @@ type Track = {
   artists: Artist[];
 };
 
+const standardRequestHeaders = (accessToken: string) => ({
+  "Accept": "application/json",
+  "Authorization": `Bearer ${accessToken}`,
+  "Content-Type": "application/json",
+});
+
 // exports.initializeFirestoreEmulator = functions.https.onCall(async (/* data*/) => {
 //   const writeBatch = firestore.batch();
 // for (let i=0; i<10; i++) {
@@ -347,12 +353,7 @@ async function getRandomArtistFromGenre(genreName: string) {
       params: {
         fields: "items(track(artists(id, name)))",
       },
-      headers: {
-        "Accept": "application/json",
-        // 'Access-Control-Allow-Origin': '*',
-        "Authorization": `Bearer ${tokenResponse.data.access_token}`,
-        "Content-Type": "application/json",
-      },
+      headers: standardRequestHeaders(tokenResponse.data.access_token),
     });
     const artists: Artist[] = [];
     const data = await res.data.items;
@@ -367,12 +368,7 @@ async function getRandomArtistFromGenre(genreName: string) {
     const searchArtistUrl = `https://api.spotify.com/v1/artists/${randArtist.id}`;
     try {
       const response = await axios.get(searchArtistUrl, {
-        headers: {
-          "Accept": "application/json",
-          // 'Access-Control-Allow-Origin': '*',
-          "Authorization": `Bearer ${tokenResponse.data.access_token}`,
-          "Content-Type": "application/json",
-        },
+        headers: standardRequestHeaders(tokenResponse.data.access_token),
       });
       console.log(response.data.images[response.data.images.length - 1]["url"]);
       const photoUrl = response.data.images[response.data.images.length - 1]["url"] ?? null;
@@ -411,13 +407,10 @@ exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: 
 
 exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
   const tokenResponse = await getSpotifyAuthToken(); // request access token
+  if (!tokenResponse) return;
   const searchUrl = `https://api.spotify.com/v1/search?q=${data.artistName.replace(/\s/g, "%20")}`;
 
   try {
-    if (!tokenResponse) {
-      throw new Error("No token available.");
-    }
-
     const res = await axios.get(searchUrl, {
       params: {
         type: "artist",
@@ -425,12 +418,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
         offset: "0",
         market: "US",
       },
-      headers: {
-        "Accept": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Authorization": `Bearer ${tokenResponse.data.access_token}`,
-        "Content-Type": "application/json",
-      },
+      headers: standardRequestHeaders(tokenResponse.data.access_token),
     });
     const searchResults = res.data.artists.items;
     const artistsData: Artist[] = searchResults.map(({ id, name, images }: Artist) => {
@@ -501,12 +489,7 @@ async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName
         offset: "0",
         market: "US",
       },
-      headers: {
-        "Accept": "application/json",
-        // 'Access-Control-Allow-Origin': '*',
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: standardRequestHeaders(accessToken),
     });
     return res;
   } catch (error) {
