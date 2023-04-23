@@ -1,6 +1,6 @@
-import {getSpotifyAuthToken} from "./getSpotifyAuthToken";
+import { getSpotifyAuthToken } from "./getSpotifyAuthToken";
 import axios from "axios";
-import {playlists} from "./playlists";
+import { playlists } from "./playlists";
 
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as functions from "firebase-functions";
@@ -18,6 +18,12 @@ type Artist = {
 };
 
 type Track = {
+  id: string;
+  name: string;
+  artists: Artist[];
+};
+
+type Album = {
   id: string;
   name: string;
   artists: Artist[];
@@ -114,7 +120,7 @@ exports.getRoom = functions.https.onCall(async (data) => {
   // return the room
   const doc = querySnapshot.docs[0];
   console.log(`[getRoom] Room found: ${doc.id}`);
-  return {name: doc.id, ...doc.data()};
+  return { name: doc.id, ...doc.data() };
 });
 
 type joinRoomArgs = {
@@ -124,11 +130,11 @@ type joinRoomArgs = {
 type joinRoomReturnValue = {
   role: "Player" | "Spectator" | null;
 };
-exports.joinRoom = functions.https.onCall(async ({roomName, role}: joinRoomArgs, context): Promise<joinRoomReturnValue> => {
+exports.joinRoom = functions.https.onCall(async ({ roomName, role }: joinRoomArgs, context): Promise<joinRoomReturnValue> => {
   // if user is not signed in -> null
   if (!context?.auth?.uid) {
     console.log("[joinRoom] No user provided. Unable to add user to room.");
-    return {role: null};
+    return { role: null };
   }
 
   // no room provided -> null
@@ -143,46 +149,46 @@ exports.joinRoom = functions.https.onCall(async ({roomName, role}: joinRoomArgs,
   // if room does not exist -> null
   if (!snapshot.exists || !snapshotData) {
     console.log(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
-    return {role: null};
+    return { role: null };
   }
 
   // user is alreday a player in room -> "Player"
   if (snapshotData["players"].includes(context.auth.uid)) {
     console.log(`[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`);
-    return {role: "Player"};
+    return { role: "Player" };
   }
 
   // user is currently a spectator
   if (snapshotData["spectators"].includes(context.auth.uid)) {
     if (snapshotData["players"].length < maxPlayersPerRoom) {
       // room has space for user -> "Player"
-      roomRef.update({players: [...snapshotData["players"], context.auth.uid]});
+      roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
       console.log(`[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`);
-      return {role: "Player"};
+      return { role: "Player" };
     } else {
       // room does not have space for user -> "Spectator"
-      roomRef.update({spectators: [...snapshotData["spectators"], context.auth.uid]});
+      roomRef.update({ spectators: [...snapshotData["spectators"], context.auth.uid] });
       console.log(`[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`);
-      return {role: "Spectator"};
+      return { role: "Spectator" };
     }
   }
 
   // user is not a player or spectator in room
   if (snapshotData["players"].length < 6) {
     // room has space for user => "Player"
-    roomRef.update({active: true});
-    roomRef.update({players: [...snapshotData["players"], context.auth.uid]});
+    roomRef.update({ active: true });
+    roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
     console.log(`[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`);
-    return {role: "Player"};
+    return { role: "Player" };
   } else {
     // room does not have space for user -> "Spectator"
-    roomRef.update({spectators: [...snapshotData["spectators"], context.auth.uid]});
+    roomRef.update({ spectators: [...snapshotData["spectators"], context.auth.uid] });
     console.log(`[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`);
-    return {role: "Spectator"};
+    return { role: "Spectator" };
   }
 });
 
-exports.leaveRoom = functions.https.onCall(async ({roomName}, context) => {
+exports.leaveRoom = functions.https.onCall(async ({ roomName }, context) => {
   // if user is not signed in
   if (!context?.auth?.uid) {
     console.log("[leaveRoom] No user provided. Unable to remove user from room.");
@@ -210,7 +216,7 @@ exports.leaveRoom = functions.https.onCall(async ({roomName}, context) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i] === context?.auth?.uid) {
       players.splice(i, 1);
-      roomRef.update({players: players});
+      roomRef.update({ players: players });
       console.log(`[leaveRoom] Successfully removed User ${context.auth.uid} from Room ${roomName}`);
       return true;
     }
@@ -221,7 +227,7 @@ exports.leaveRoom = functions.https.onCall(async ({roomName}, context) => {
   for (let i = 0; i < spectators.length; i++) {
     if (spectators[i] === context?.auth?.uid) {
       spectators.splice(i, 1);
-      roomRef.update({spectators: spectators});
+      roomRef.update({ spectators: spectators });
       console.log(`[leaveRoom] Successfully removed User ${context.auth.uid} from Room ${roomName}`);
       return true;
     }
@@ -232,7 +238,7 @@ exports.leaveRoom = functions.https.onCall(async ({roomName}, context) => {
   return false;
 });
 
-exports.setNewRoomArtists = functions.https.onCall(async ({roomName, context}) => {
+exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context }) => {
   // if user is not signed in
   if (!context?.auth?.uid) {
     console.log("[setNewRoomArtists] No user provided. Unable to set new artists for room.");
@@ -289,8 +295,8 @@ function resetRoom(roomName: string) {
       active: false,
       players: [],
       spectators: [],
-      initialArtist: {id: null, name: null},
-      finalArtist: {id: null, name: null},
+      initialArtist: { id: null, name: null },
+      finalArtist: { id: null, name: null },
       type: "guest", // guest, user or competition
       owner: null,
       hardMode: false,
@@ -309,7 +315,7 @@ exports.onRoomUpdated = functions.firestore.document("/rooms/{roomName}").onUpda
   const dataAfter = change.after.data();
   // check for CHANGE (in initial and final artists)
   if (dataAfter["initialArtist"].id != dataBefore["initialArtist"].id || dataAfter["finalArtist"].id != dataBefore["finalArtist"].id) {
-    promises.push(change.after.ref.set({lastChange: admin.firestore.Timestamp.now()}, {merge: true}));
+    promises.push(change.after.ref.set({ lastChange: admin.firestore.Timestamp.now() }, { merge: true }));
     console.log(`[onRoomUpdated] Updating lastChange for Room ${context.params.roomName}.`);
   }
 
@@ -346,8 +352,8 @@ exports.resetUnusedRooms = functions.pubsub.schedule("every day 04:00").onRun(as
           active: false,
           players: [],
           spectators: [],
-          initialArtist: {id: null, name: null},
-          finalArtist: {id: null, name: null},
+          initialArtist: { id: null, name: null },
+          finalArtist: { id: null, name: null },
           type: "guest", // guest, user or competition
           owner: null,
           hardMode: false,
@@ -455,7 +461,7 @@ async function getMultipleArtistsFromSpotify(artistsIds: string[], accessToken: 
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({genreName}: { genreName: string | undefined }) => {
+exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
   // select random genre if one is not passed as argument
   const genres = Object.keys(playlists);
   const randomGenre = genres[Math.floor(Math.random() * genres.length)];
@@ -503,7 +509,7 @@ exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
       headers: standardRequestHeaders(tokenResponse.data.access_token),
     });
     const searchResults = res.data.artists.items;
-    const artistsData: Artist[] = searchResults.map(({id, name, images}: Artist) => {
+    const artistsData: Artist[] = searchResults.map(({ id, name, images }: Artist) => {
       return {
         id,
         name,
@@ -537,42 +543,42 @@ function createTrackNameVariations(trackName: string) {
 function isTrackNameSimilar(songNameGuess: string, actualSongName: string, strictMode = false) {
   const variations = createTrackNameVariations(actualSongName);
   for (const variation of variations) {
-    if (strictMode && songNameGuess.localeCompare(variation, undefined, {sensitivity: "base"}) === 0) return true;
+    if (strictMode && songNameGuess.localeCompare(variation, undefined, { sensitivity: "base" }) === 0) return true;
     if (!strictMode && songNameGuess.toLowerCase().startsWith(actualSongName.toLowerCase().slice(0, 4))) return true;
   }
   return false;
 }
 
-// // search for track by selected artist
-// async function searchForTrackByArtistOnSpotify(songNameGuess: string, artistName: string, accessToken: string) {
-//   const searchUrl = "https://api.spotify.com/v1/search";
+// search for track by selected artist
+async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
+  const searchUrl = `https://api.spotify.com/v1/artists/${artistId}/albums`;
 
-//   try {
-//     const res = await axios.get<{ tracks: { items: Track[] } }>(searchUrl, {
-//       params: {
-//         q: `${songNameGuess.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
-//         type: "track",
-//         limit: "5",
-//         offset: "0",
-//         market: "US",
-//       },
-//       headers: standardRequestHeaders(accessToken),
-//     });
-//     return res;
-//   } catch (error) {
-//     console.log(`[searchForTrackByArtistOnSpotify] ${error}`);
-//     return;
-//   }
-// }
+  try {
+    const res = await axios.get<{ tracks: { items: Track[] } }>(searchUrl, {
+      params: {
+        q: `${songNameGuess.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
+        type: "track",
+        limit: "5",
+        offset: "0",
+        market: "US",
+      },
+      headers: standardRequestHeaders(accessToken),
+    });
+    return res;
+  } catch (error) {
+    console.log(`[searchForTrackByArtistOnSpotify] ${error}`);
+    return;
+  }
+}
 
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
-async function searchForTracks({trackName, artistName, accessToken, limit}: SearchArgs) {
+async function searchForTracks({ trackName, artistName, accessToken, limit }: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
   try {
     // do initial request to work out how many more requests are needed to get all songs
     const initialResponse = await axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
       params: {
-        q: `${trackName.toLowerCase().replace(/\s/g, "%20")}` + `${artistName ? `%20artist:${artistName.replace(/\s/g, "%20")}` : ""}`,
+        q: `${trackName.toLowerCase().replace(/\s/g, "")}` + `${artistName ? `%20${artistName.replace(/\s/g, "")}` : ""}`,
         type: "track",
         offset: "0",
         limit: `${Math.max(limit ?? 50, 50)}`,
@@ -684,7 +690,7 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
  * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
  */
 exports.searchForTracks = functions.https.onCall(
-  async ({trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode}) => {
+  async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
     // request spotify access token
     const tokenResponse = await getSpotifyAuthToken();
     if (!tokenResponse) return;
@@ -709,6 +715,9 @@ exports.searchForTracks = functions.https.onCall(
       );
     });
     console.log(`[searchForTracks] ${tracksResponse.data.length} tracks found and filtered to ${tracks.length}`);
+    tracksResponse.data.forEach((track) => {
+      console.log([track.name, track.artists.map((artist) => artist.name)]);
+    });
 
     // the tracks endpoint doesn't return photoUrl for track artists
     // get all the artistIds from the tracks

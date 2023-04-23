@@ -3,7 +3,7 @@ import GenreChip from "./GenreChip.vue";
 import { Artist, useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import ArtistImage from "./ArtistImage.vue";
 import TrackSearchInput from "./TrackSearchInput.vue";
 
@@ -14,16 +14,21 @@ const getRandomStartingArtists = httpsCallable<
 
 const store = useAppStore();
 
+const isLoading = ref(false);
+
 const refreshArtists = async () => {
-  store.resetPathArtistsToEmpty();
+  isLoading.value = true;
   store.setRandomCurrentGameGenreFromSelected();
   try {
     const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
+    store.resetPathArtistsToEmpty();
     store.pushPathArtist(artistsResponse.data.artists[0]);
     store.setFinalArtist(artistsResponse.data.artists[1]);
     store.setCurrentGameGenre(artistsResponse.data.genre);
+    isLoading.value = false;
   } catch (error) {
     console.error(error);
+    isLoading.value = false;
   }
 };
 
@@ -61,9 +66,13 @@ onMounted(() => {
       <p>{{ store.finalArtist.name }}</p>
     </div>
 
-    <button @click="refreshArtists">Refresh Artists</button>
+    <button @click="refreshArtists" :disabled="isLoading">Refresh Artists</button>
 
-    <TrackSearchInput v-if="store?.currentPathArtist?.name" :artist-name="store.currentPathArtist.name" />
+    <TrackSearchInput
+      v-if="store?.currentPathArtist?.name"
+      :artist-name="store.currentPathArtist.name"
+      :disabled="isLoading"
+    />
   </div>
 </template>
 
