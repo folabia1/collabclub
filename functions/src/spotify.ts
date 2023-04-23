@@ -157,6 +157,44 @@ async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
   return tracksResponse;
 }
 
+/**
+ * Takes a track name and artist name as search query and seaches Spotify API for
+ * tracks. Filters to only songs that have MULTIPLE artists including the artistName.
+ *
+ * When using the `strictMode` flag it filters tracks more strongly, only keeping the
+ * track(s) with exactly the same name.
+ *
+ * @param {Object} data
+ * @param {string} data.trackName the Track name value to be used in the search query
+ * @param {string} data.artistId the Artist id value to be used in the search query
+ * @param {boolean} data.requireMulipleArtists
+ * @param {boolean} data.requireThisArtist
+ * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
+ */
+exports.searchForTracksInArtistDiscography = functions.https.onCall(
+  async ({ trackName, artistId, requireMulipleArtists, requireThisArtist, strictMode }) => {
+    // request spotify access token
+    const tokenResponse = await getSpotifyAuthToken();
+    if (!tokenResponse) return;
+
+    // get full artist discography (every track released by or featuring Artist)
+    const tracksResponse = await getAllTracksByAnArtist(artistId, tokenResponse.data.access_token);
+    if (!tracksResponse) return;
+
+    // apply filters
+    const filteredTracks = tracksResponse.filter((track) => {
+      return (
+        (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+        (!requireThisArtist || track.artists.some((artist) => artist.id === artistId)) && // correct artist
+        isTrackNameSimilar(trackName, track.name, strictMode) // name is right (or almost right)
+      );
+    });
+    console.log(`[searchForTracksWithQuery] ${tracksResponse.length} tracks found and filtered to ${filteredTracks.length}`);
+
+    return filteredTracks;
+  }
+);
+
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
 async function searchForTracksWithQuery({ trackName, artistName, accessToken, limit }: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
