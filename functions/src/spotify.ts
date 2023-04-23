@@ -142,6 +142,21 @@ async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
   }
 }
 
+async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
+  // get all the artist's albums as album ids
+  const albumsResponse = await getAllAlbumsByAnArtist(artistId, accessToken);
+  if (!albumsResponse) return;
+
+  const albumIds = albumsResponse.map((album) => album.id);
+
+  // get all the tracks from all the albums
+  // includes: "album", "single", "appears_on" and "compilation"
+  const tracksResponse = await getTracksFromAlbumIds(albumIds, accessToken);
+  if (!tracksResponse) return;
+
+  return tracksResponse;
+}
+
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
 async function searchForTracksWithQuery({ trackName, artistName, accessToken, limit }: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
