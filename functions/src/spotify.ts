@@ -208,7 +208,7 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
     });
     if (!tracksResponse) continue;
 
-    potentialTracks.push(...tracksResponse.data);
+    potentialTracks.push(...tracksResponse);
   }
 
   // check if song features both artists
@@ -275,15 +275,15 @@ exports.searchForTracks = functions.https.onCall(
     // apply filters
     // filter to only keep tracks with multiple artists including this artist
     // also filtering out tracks that don't have the same title as data.trackName
-    const tracks = tracksResponse.data.filter((track) => {
+    const tracks = tracksResponse.filter((track) => {
       return (
         (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
         (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
         isTrackNameSimilar(trackName, track.name, strictMode) // name is right (or almost right)
       );
     });
-    console.log(`[searchForTracks] ${tracksResponse.data.length} tracks found and filtered to ${tracks.length}`);
-    tracksResponse.data.forEach((track) => {
+    console.log(`[searchForTracks] ${tracksResponse.length} tracks found and filtered to ${tracks.length}`);
+    tracksResponse.forEach((track) => {
       console.log([track.name, track.artists.map((artist) => artist.name)]);
     });
 
@@ -312,18 +312,6 @@ exports.searchForTracks = functions.https.onCall(
 );
 
 /* ARTISTS */
-async function getRandomStoredArtist() {
-  // gets id, name and photoUrl
-  const artistsCollectionRef = firestore.collection("artists");
-  while (true) {
-    const key = artistsCollectionRef.doc().id;
-    const snapshot = await artistsCollectionRef.where("__name__", ">=", key).limit(1).get();
-    if (!snapshot.empty) {
-      return firestore.doc(`artists/${snapshot.docs[0].id}`);
-    }
-  }
-}
-
 async function getRandomArtistFromGenre(genreName: string) {
   // arg 'genreName' should be randomly selected before calling function to keep starting and final artist in same genre
 
