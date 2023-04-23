@@ -77,24 +77,67 @@ function isTrackNameSimilar(songNameGuess: string, actualSongName: string, stric
   return false;
 }
 
-// TODO
-async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
+async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
   const searchUrl = `https://api.spotify.com/v1/artists/${artistId}/albums`;
 
+  // do initial request to work out how many more requests are needed to get all albums
   try {
-    const res = await axios.get<{ tracks: { items: Track[] } }>(searchUrl, {
-      params: {
-        q: `${songNameGuess.replace(/\s/g, "%20")}%20artist:${artistName.replace(/\s/g, "%20")}`,
-        type: "track",
-        limit: "5",
-        offset: "0",
-        market: "US",
-      },
+    const initialResponse = await axios.get<{ total: number; items: Album[] }>(searchUrl, {
+      params: { offset: "0", limit: "50" },
       headers: standardRequestHeaders(accessToken),
     });
-    return res;
+
+    // batch all remaining requests together
+    const totalNumAlbumsWanted = initialResponse.data.total;
+    const numAdditionalRequestsToMake = Math.ceil((totalNumAlbumsWanted - 50) / 50);
+    const batchRequests = [];
+    for (let i = 0; i < numAdditionalRequestsToMake; i++) {
+      batchRequests.push(
+        axios.get<{ total: number; items: Album[] }>(searchUrl, {
+          params: { offset: `${(i + 1) * 50}`, limit: "50" },
+          headers: standardRequestHeaders(accessToken),
+        })
+      );
+    }
+
+    // await batched requests and combine initial response with batched response
+    const batchResponses = await Promise.all(batchRequests);
+    batchResponses.unshift(initialResponse);
+
+    // flatten the array so that it's as if they all came from one response
+    const albums: Album[] = [];
+    const batchedAlbumsResponses = await Promise.all(batchResponses);
+    batchedAlbumsResponses.forEach((response) => albums.push(...response.data.items));
+
+    return albums;
   } catch (error) {
-    console.log(`[searchForTrackByArtistOnSpotify] ${error}`);
+    console.log(`Unable to retrieve tracks from Spotify: ${error}`);
+    return null;
+  }
+}
+
+export async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
+  const searchUrl = `https://api.spotify.com/v1/tracks`;
+  try {
+    const responses = [];
+    // endpoint only returns 50 Tracks at a time so
+    // we send multiple requests and join the responses
+    const numRequestsToMake = Math.ceil(albumIds.length / 50);
+    for (let i = 0; i < numRequestsToMake; i++) {
+      const tracksResponse = await axios.get<{ tracks: Track[] }>(searchUrl, {
+        params: { ids: albumIds.slice(50 * i, 50 * i + 50).toString() },
+        headers: standardRequestHeaders(accessToken),
+      });
+      responses.push(tracksResponse);
+    }
+
+    // flatten batched responses
+    const tracks: Track[] = [];
+    const batchedTracksResponses = await Promise.all(responses);
+    batchedTracksResponses.forEach((response) => tracks.push(...response.data.tracks));
+    return tracks;
+  } catch (error) {
+    console.log(`[getMultipleArtistsFromSpotify] ${error}`);
     return;
   }
 }
@@ -138,15 +181,12 @@ async function searchForTracks({ trackName, artistName, accessToken, limit }: Se
     const batchResponses = await Promise.all(batchRequests);
     batchResponses.unshift(initialResponse);
 
-    // flatten the array so that it's as if they all came from one response
-    const tracksResponse = {
-      data: batchResponses.reduce((arr, response) => {
-        arr.push(...response.data.tracks.items);
-        return arr;
-      }, [] as Track[]),
-    };
+    // flatten the batched responses array so that it's as if they all came from one response
+    const tracks: Track[] = [];
+    const batchedTracksResponses = await Promise.all(batchResponses);
+    batchedTracksResponses.forEach((response) => tracks.push(...response.data.tracks.items));
 
-    return tracksResponse;
+    return tracks;
   } catch (error) {
     console.log(`Unable to retrieve songs from Spotify: ${error}`);
     return null;
