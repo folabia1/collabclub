@@ -16,7 +16,7 @@ const store = useAppStore();
 
 const refreshArtists = async () => {
   store.resetPathArtistsToEmpty();
-  store.setRandomGameGenreFromSelected();
+  store.setRandomCurrentGameGenreFromSelected();
   try {
     const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
     store.pushPathArtist(artistsResponse.data.artists[0]);
@@ -27,7 +27,12 @@ const refreshArtists = async () => {
   }
 };
 
-onMounted(refreshArtists);
+onMounted(() => {
+  if (!store.selectedGenres.length) {
+    store.selectDefaultGenres();
+  }
+  refreshArtists();
+});
 </script>
 
 <template>

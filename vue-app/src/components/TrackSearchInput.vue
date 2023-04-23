@@ -27,6 +27,7 @@ const handleClickArtist = (artist: Artist, track: Track) => {
     ...artist,
     track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
   });
+  suggestedTracks.value = [];
 };
 
 async function suggestTracksFeaturingArtist(trackGuess: string) {

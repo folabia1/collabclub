@@ -61,6 +61,11 @@ export const useAppStore = defineStore("app", {
     toggleGenreSelected(genreName: string) {
       this.genres[genreName] = !this.genres[genreName];
     },
+    selectDefaultGenres() {
+      this.genreNames.slice(0, 3).forEach((genreName) => {
+        this.genres[genreName] = true;
+      });
+    },
     setCurrentGameGenre(genreName: string) {
       this.genres[genreName] = true;
       this.currentGameGenre = genreName;
@@ -68,7 +73,7 @@ export const useAppStore = defineStore("app", {
     resetCurrentGameGenre() {
       this.currentGameGenre = null;
     },
-    setRandomGameGenreFromSelected() {
+    setRandomCurrentGameGenreFromSelected() {
       this.currentGameGenre = this.selectedGenres[Math.floor(Math.random() * this.selectedGenres.length)];
     },
     /* Artists */
