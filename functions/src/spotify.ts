@@ -116,7 +116,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
   }
 }
 
-export async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
+async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
   const searchUrl = `https://api.spotify.com/v1/tracks`;
   try {
     const responses = [];
@@ -143,7 +143,7 @@ export async function getTracksFromAlbumIds(albumIds: string[], accessToken: str
 }
 
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
-async function searchForTracks({ trackName, artistName, accessToken, limit }: SearchArgs) {
+async function searchForTracksWithQuery({ trackName, artistName, accessToken, limit }: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
   try {
     // do initial request to work out how many more requests are needed to get all songs
@@ -193,6 +193,7 @@ async function searchForTracks({ trackName, artistName, accessToken, limit }: Se
   }
 }
 
+// TODO: update this using the `getAllTracksByAnArtist` function
 exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) => {
   // search for tracks matching name and artist
   const tokenResponse = await getSpotifyAuthToken(); // request access token
@@ -200,7 +201,7 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
 
   const potentialTracks: Track[] = [];
   for (const artist of ["currentArtist", "nextArtist"]) {
-    const tracksResponse = await searchForTracks({
+    const tracksResponse = await searchForTracksWithQuery({
       trackName: data.songNameGuess,
       artistName: data[artist].name,
       accessToken: tokenResponse.data.access_token,
@@ -257,14 +258,14 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
  * @param {number} data.limit
  * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
  */
-exports.searchForTracks = functions.https.onCall(
+exports.searchForTracksWithQuery = functions.https.onCall(
   async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
     // request spotify access token
     const tokenResponse = await getSpotifyAuthToken();
     if (!tokenResponse) return;
 
     // search for tracks matching trackName and artistName
-    const tracksResponse = await searchForTracks({
+    const tracksResponse = await searchForTracksWithQuery({
       trackName,
       artistName: requireThisArtist ? artistName : undefined,
       accessToken: tokenResponse.data.access_token,
@@ -282,7 +283,7 @@ exports.searchForTracks = functions.https.onCall(
         isTrackNameSimilar(trackName, track.name, strictMode) // name is right (or almost right)
       );
     });
-    console.log(`[searchForTracks] ${tracksResponse.length} tracks found and filtered to ${tracks.length}`);
+    console.log(`[searchForTracksWithQuery] ${tracksResponse.length} tracks found and filtered to ${tracks.length}`);
     tracksResponse.forEach((track) => {
       console.log([track.name, track.artists.map((artist) => artist.name)]);
     });

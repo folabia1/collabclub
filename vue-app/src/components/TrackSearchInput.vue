@@ -13,12 +13,12 @@ type SearchQuery = {
   requireThisArtist: boolean;
   strictMode: boolean;
 };
-const searchForTracks = httpsCallable<SearchQuery, Track[]>(functions, "searchForTracks");
+const searchForTracksWithQuery = httpsCallable<SearchQuery, Track[]>(functions, "searchForTracksWithQuery");
 async function suggestTracks(trackGuess: string) {
   isCheckingAnswer.value = true;
   hasMadeAttempt.value = true;
   try {
-    const tracksResponse = await searchForTracks({
+    const tracksResponse = await searchForTracksWithQuery({
       trackName: trackGuess,
       artistName: props.artistName,
       requireMultipleArtists: true,

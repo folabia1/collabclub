@@ -203,6 +203,7 @@ exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context })
 
   // TODO: add check that the user is a Player in the Room
 
+  // TODO: switch this to use a random artist from spotify instead of a stored artist
   // select 2 random artists from artists collection
   const selectedArtists: Artist[] = [];
   while (selectedArtists.length < 2) {
