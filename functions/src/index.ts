@@ -653,13 +653,13 @@ exports.checkSongForTwoArtists = functions.https.onCall(async (data, context) =>
  * @param {Object} data
  * @param {string} data.trackName the Track name value to be used in the search query
  * @param {string} data.artistName the Artist name value to be used in the search query
- * @param {string} data.requireMulipleArtistsOnTrack
- * @param {string} data.requireThisArtistOnTrack
+ * @param {string} data.requireMulipleArtists
+ * @param {string} data.requireThisArtist
  * @param {string} data.limit
  * @param { boolean} data.strictMode whether to the name
  */
 exports.searchForTracks = functions.https.onCall(
-  async ({ trackName, artistName, requireMulipleArtistsOnTrack, requireThisArtistOnTrack, limit, strictMode }) => {
+  async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
     // request spotify access token
     const tokenResponse = await getSpotifyAuthToken();
     if (!tokenResponse) return;
@@ -673,12 +673,13 @@ exports.searchForTracks = functions.https.onCall(
     // also filtering out tracks that don't have the same title as data.trackName
     const tracks = tracksResponse.data.filter((track) => {
       return (
-        (!requireMulipleArtistsOnTrack || track.artists.length > 1) && // multiple artists
-        (!requireThisArtistOnTrack || track.artists.some((artist) => artist.name === artistName)) && // correct artist
+        (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+        (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
         ((!strictMode && trackName.toLowerCase().startsWith(track.name.toLowerCase().slice(0, 4))) ||
           isTrackNameSimilar(trackName, track.name, true)) // name is right (or almost right)
       );
     });
+    console.log(`[searchForTracks] ${tracksResponse.data.length} tracks found and filtered to ${tracks.length}`);
 
     // the tracks endpoint doesn't return photoUrl for track artists
     // get all the artistIds from the tracks

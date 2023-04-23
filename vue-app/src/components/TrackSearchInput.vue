@@ -6,11 +6,14 @@ import { ref } from "vue";
 
 const props = defineProps<{ artistName: string }>();
 
-type SearchQuery = { trackName: string; artistName: string; strictMode: boolean };
-const searchForTracksFeaturingArtistByTrackName = httpsCallable<SearchQuery, Track[]>(
-  functions,
-  "searchForTracksFeaturingArtistByTrackName"
-);
+type SearchQuery = {
+  trackName: string;
+  artistName: string;
+  requireMultipleArtists: boolean;
+  requireThisArtist: boolean;
+  strictMode: boolean;
+};
+const searchForTracks = httpsCallable<SearchQuery, Track[]>(functions, "searchForTracks");
 
 const store = useAppStore();
 let suggestedTracks = ref([] as Track[]);
@@ -32,9 +35,11 @@ const handleClickArtist = (artist: Artist, track: Track) => {
 
 async function suggestTracksFeaturingArtist(trackGuess: string) {
   try {
-    const tracksResponse = await searchForTracksFeaturingArtistByTrackName({
+    const tracksResponse = await searchForTracks({
       trackName: trackGuess,
       artistName: props.artistName,
+      requireMultipleArtists: true,
+      requireThisArtist: true,
       strictMode: false,
     });
     // display tracks for user to choose from
