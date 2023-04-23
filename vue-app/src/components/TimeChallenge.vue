@@ -5,6 +5,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { onMounted } from "vue";
 import ArtistImage from "./ArtistImage.vue";
+import TrackSearchInput from "./TrackSearchInput.vue";
 
 const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
@@ -47,6 +48,8 @@ onMounted(refreshArtists);
     </div>
 
     <button @click="refreshArtists">Refresh Artists</button>
+
+    <TrackSearchInput />
   </div>
 </template>
 
