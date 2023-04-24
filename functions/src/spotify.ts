@@ -82,7 +82,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
   // do initial request to work out how many more requests are needed to get all albums
   try {
     const initialResponse = await axios.get<{ total: number; items: Album[] }>(searchUrl, {
-      params: { offset: "0", limit: "50" },
+      params: { include_groups: "album,single,appears_on", offset: "0", limit: "50" },
       headers: standardRequestHeaders(accessToken),
     });
 
@@ -93,7 +93,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
     for (let i = 0; i < numAdditionalRequestsToMake; i++) {
       batchRequests.push(
         axios.get<{ total: number; items: Album[] }>(searchUrl, {
-          params: { offset: `${(i + 1) * 50}`, limit: "50" },
+          params: { include_groups: "album,single,appears_on", offset: `${(i + 1) * 50}`, limit: "50" },
           headers: standardRequestHeaders(accessToken),
         })
       );
@@ -121,7 +121,7 @@ async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
     const responses = [];
     // endpoint only returns 20 Albums at a time so
     // we send multiple requests and join the responses
-    const numRequestsToMake = 1; // Math.ceil(albumIds.length / 20);
+    const numRequestsToMake = Math.ceil(albumIds.length / 20);
     for (let i = 0; i < numRequestsToMake; i++) {
       const albumsResponse = await axios.get<{ albums: Album[] }>(searchUrl, {
         params: { ids: albumIds.slice(20 * i, 20 * i + 20).toString() },
@@ -205,12 +205,7 @@ async function searchForTracksInArtistDiscography({
 }
 exports.searchForTracksInArtistDiscography = functions.https.onCall(searchForTracksInArtistDiscography);
 
-type getFeaturesArgs = {
-  artistId1: string;
-  artistId2: string;
-  strictMode: boolean;
-};
-
+type getFeaturesArgs = { artistId1: string; artistId2: string; strictMode: boolean };
 /**
  * Gets all features between two artists using the Spotify API.
  * Filters to only return songs with a name similar to the trackName input.
