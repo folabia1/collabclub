@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions"; // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as admin from "firebase-admin"; // The Firebase Admin SDK to access Firestore.
-import {Artist} from "./spotify";
+import * as Spotify from "./spotify";
+export {Spotify}; // * connect exports from spotify.ts
 
 // setup firebase and firestore
 admin.initializeApp();
@@ -206,7 +207,7 @@ exports.setNewRoomArtists = functions.https.onCall(async ({roomName, context}) =
 
   // TODO: switch this to use a random artist from spotify instead of a stored artist
   // select 2 random artists from artists collection
-  const selectedArtists: Artist[] = [];
+  const selectedArtists: Spotify.Artist[] = [];
   // while (selectedArtists.length < 2) {
   //   const randArtistDoc = await getRandomStoredArtist();
   //   const artistData = (await randArtistDoc.get()).data() as Artist;

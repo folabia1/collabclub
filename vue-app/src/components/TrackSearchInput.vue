@@ -4,7 +4,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { ref } from "vue";
 
-const props = defineProps<{ disabled: boolean }>();
+defineProps<{ disabled: boolean }>();
 
 type SearchQuery = {
   trackName: string;
@@ -15,7 +15,7 @@ type SearchQuery = {
 };
 const searchForTracksInArtistDiscography = httpsCallable<SearchQuery, Track[]>(
   functions,
-  "searchForTracksInArtistDiscography"
+  "Spotify-searchForTracksInArtistDiscography"
 );
 async function suggestTracks(trackGuess: string) {
   isCheckingAnswer.value = true;

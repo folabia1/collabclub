@@ -10,7 +10,7 @@ import TrackSearchInput from "./TrackSearchInput.vue";
 const getRandomStartingArtists = httpsCallable<
   { genreName: string | null | undefined },
   { genre: string; artists: Artist[] }
->(functions, "getRandomStartingArtists");
+>(functions, "Spotify-getRandomStartingArtists");
 
 const store = useAppStore();
 
