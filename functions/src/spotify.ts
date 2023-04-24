@@ -19,6 +19,7 @@ export type Album = {
   id: string;
   name: string;
   album_type: string;
+  tracks: { items: Track[] };
   total_tracks: number;
   artists: Artist[];
 };
@@ -115,28 +116,33 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
 }
 
 async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
-  const searchUrl = "https://api.spotify.com/v1/tracks";
+  const searchUrl = "https://api.spotify.com/v1/albums";
   try {
     const responses = [];
-    // endpoint only returns 50 Tracks at a time so
+    // endpoint only returns 20 Albums at a time so
     // we send multiple requests and join the responses
-    const numRequestsToMake = Math.ceil(albumIds.length / 50);
+    const numRequestsToMake = 1; // Math.ceil(albumIds.length / 20);
     for (let i = 0; i < numRequestsToMake; i++) {
-      const tracksResponse = await axios.get<{ tracks: Track[] }>(searchUrl, {
-        params: { ids: albumIds.slice(50 * i, 50 * i + 50).toString() },
+      const albumsResponse = await axios.get<{ albums: Album[] }>(searchUrl, {
+        params: { ids: albumIds.slice(20 * i, 20 * i + 20).toString() },
         headers: standardRequestHeaders(accessToken),
       });
-      responses.push(tracksResponse);
+      responses.push(albumsResponse);
     }
 
     // flatten batched responses
+    const albums: Album[] = [];
+    const batchedAlbumsResponses = await Promise.all(responses);
+    batchedAlbumsResponses.forEach((response) => albums.push(...response.data.albums));
+
+    // get tracks from each album
     const tracks: Track[] = [];
-    const batchedTracksResponses = await Promise.all(responses);
-    batchedTracksResponses.forEach((response) => tracks.push(...response.data.tracks));
+    albums.forEach((album) => tracks.push(...album.tracks.items));
+
     return tracks;
   } catch (error) {
-    console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
+    console.log(`[getTracksFromAlbumIds] ${error}`);
+    throw new Error(`[getTracksFromAlbumIds] ${error}`);
   }
 }
 
@@ -184,7 +190,6 @@ async function searchForTracksInArtistDiscography({
 
   // get full artist discography (every track released by or featuring Artist)
   const tracksResponse = await getAllTracksByAnArtist(artistId, accessToken);
-  if (!tracksResponse) return;
 
   // apply filters
   const filteredTracks = tracksResponse.filter((track) => {
@@ -225,7 +230,6 @@ async function getFeaturesBetweenTwoArtists({ artistId1, artistId2, strictMode }
     requireThisArtist: true,
     strictMode: strictMode,
   });
-  if (!tracksResponse) return;
 
   // we know that all the tracks in tracksResponse have artistId1 beacause of `requireThisArtist: true`
   // so we just have to filter to tracks that also include artistId2
@@ -337,7 +341,6 @@ exports.searchForTracksWithQuery = functions.https.onCall(
 
     // make a request for the artists to get the photoUrl
     const fullArtists = await getMultipleArtistsFromSpotifyById(artistIds, accessToken);
-    if (!fullArtists) return tracks;
 
     // set photoUrls in the idToUrl map
     fullArtists.forEach((artist) => artistIdToPhotoUrlMap.set(artist.id, artist.images?.[artist.images.length - 1]?.url ?? ""));
@@ -395,12 +398,20 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
     const randomArtistsFromGenre: Artist[] = [];
     batchedResponses.forEach((response) => randomArtistsFromGenre.push(response.data.artists.items[0]));
 
-    const fullRandomArtistsFromGenre = await getMultipleArtistsFromSpotifyById(
-      randomArtistsFromGenre.map((artist) => artist.id),
-      accessToken
-    );
+    // the search endpoint doesn't return photoUrl for artists
+    // get all the artistIds from the tracks
+    const artistIds = randomArtistsFromGenre.map((artist) => artist.id);
 
-    return { artists: fullRandomArtistsFromGenre, genre: selectedGenre };
+    // make a request for the artists to get the photoUrl
+    const fullRandomArtists = await getMultipleArtistsFromSpotifyById(artistIds, accessToken);
+
+    // add the photoUrl information to the tracks
+    fullRandomArtists.forEach((artist, index) => {
+      const fullArtist = fullRandomArtists.find((fullArtist) => fullArtist.id === artist.id) as Artist;
+      randomArtistsFromGenre[index].photoUrl = fullArtist.images?.[fullArtist.images.length - 1]?.url ?? "";
+    });
+
+    return { artists: randomArtistsFromGenre, genre: selectedGenre };
   } catch (error) {
     console.log(`[getRandomArtistsFromSameGenre] Unable to get artist - ${error}`);
     throw new Error(`[getRandomArtistsFromSameGenre] Unable to get artist - ${error}`);

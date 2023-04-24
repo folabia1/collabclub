@@ -313,7 +313,7 @@ exports.resetUnusedRooms = functions.pubsub.schedule("every day 04:00").onRun(as
     for (const roomRef of roomsList) {
       const room = await roomRef.get();
       const roomData = room.data();
-      if (!roomData) return;
+      if (!roomData) break;
 
       // if lastChange in room was more than 3 mins ago
       if (timeNow.getMinutes() - roomData.lastChange.toDate().getMinutes() > 3) {
