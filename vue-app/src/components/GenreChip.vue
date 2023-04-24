@@ -15,16 +15,30 @@ const toggleSelected = () => store.toggleGenreSelected(props.text);
 
 <style lang="scss">
 button.genre-chip {
+  border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+  border: 1px var(--accent) solid;
   background-color: transparent;
+  font-weight: 700;
+  @media (prefers-color-scheme: dark) {
+    color: var(--accent);
+  }
 
   &:disabled {
-    background-color: darkgray;
+    border-color: var(--disabled);
+    background-color: transparent;
+    &.active {
+      border-color: var(--disabled);
+      background-color: var(--disabled);
+    }
   }
 
   &.active {
-    background-color: green;
-    &:disabled {
-      background-color: blue;
+    border-color: var(--accent);
+    background-color: var(--accent);
+    @media (prefers-color-scheme: dark) {
+      color: var(--background-primary);
     }
   }
 }

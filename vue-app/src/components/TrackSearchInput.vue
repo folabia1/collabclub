@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Track, Artist, useAppStore } from "../pinia/store";
+import { Track, useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { ref } from "vue";
@@ -18,8 +18,8 @@ const searchForTracksInArtistDiscography = httpsCallable<SearchQuery, Track[]>(
   "Spotify-searchForTracksInArtistDiscography"
 );
 async function suggestTracks(trackGuess: string) {
-  isCheckingAnswer.value = true;
-  hasMadeAttempt.value = true;
+  store.setIsLoadingResults(true);
+  store.setHasMadeAttempt(true);
   try {
     const tracksResponse = await searchForTracksInArtistDiscography({
       trackName: trackGuess,
@@ -29,16 +29,14 @@ async function suggestTracks(trackGuess: string) {
       strictMode: false,
     });
     // display tracks for user to choose from
-    suggestedTracks.value = [...tracksResponse.data];
+    store.setSuggestedTracks([...tracksResponse.data]);
   } finally {
-    isCheckingAnswer.value = false;
+    store.setIsLoadingResults(false);
   }
 }
 
 const store = useAppStore();
-let suggestedTracks = ref([] as Track[]);
-let isCheckingAnswer = ref(false);
-let hasMadeAttempt = ref(false);
+let isLoadingResults = ref(false);
 
 const handleInputChange = (e: Event) => {
   if (!(e.target instanceof HTMLInputElement)) return;
@@ -47,28 +45,35 @@ const handleInputChange = (e: Event) => {
 
   suggestTracks(trackGuess);
 };
-const handleClickArtist = (artist: Artist, track: Track) => {
-  store.pushPathArtist({
-    ...artist,
-    track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
-  });
-  suggestedTracks.value = [];
-};
 </script>
 
 <template>
-  <div>
-    <i clas="fa fa-info-circle" />
-    <p>Search for a track with {{ store.currentPathArtist?.name ?? "this artist" }} and another artist.</p>
-  </div>
-  <input type="search" @change="(e) => handleInputChange(e)" :disabled="disabled" />
-  <span v-if="suggestedTracks.length === 0 && !isCheckingAnswer && hasMadeAttempt">No results</span>
-  <span v-if="isCheckingAnswer">Loading...</span>
-  <div v-for="track in suggestedTracks">
-    <p>{{ track.name }}</p>
-    <template v-for="artist in track.artists">
-      <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
-      <button v-else @click="() => handleClickArtist(artist, track)">{{ artist.name }}</button>
-    </template>
+  <div class="track-search-input">
+    <div class="info">
+      <i clas="fa fa-info-circle" />
+      <p>
+        Search for a track with <b>{{ store.currentPathArtist?.name ?? "this artist" }}</b> and another artist.
+      </p>
+    </div>
+    <input type="search" placeholder="Track name..." @change="(e) => handleInputChange(e)" :disabled="disabled" />
+    <span v-if="isLoadingResults">Loading...</span>
   </div>
 </template>
+
+<style lang="scss">
+.track-search-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  input {
+    background-color: rgba(255, 255, 255, 0.8);
+
+    border-radius: 4px;
+    border-width: 2px;
+    border-color: var(--button-primary);
+    padding: 0.2rem;
+    font-size: 1.2rem;
+  }
+}
+</style>

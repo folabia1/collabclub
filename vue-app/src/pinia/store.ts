@@ -36,6 +36,9 @@ export const useAppStore = defineStore("app", {
     screen: "home",
     pathArtists: [] as PathArtist[],
     finalArtist: null as Artist | null,
+    hasMadeAttempt: false,
+    isLoadingResults: false,
+    suggestedTracks: [] as Track[],
   }),
 
   // computed values
@@ -86,6 +89,16 @@ export const useAppStore = defineStore("app", {
     },
     setFinalArtist(artist: Artist) {
       this.finalArtist = artist;
+    },
+    /* Suggested Tracks */
+    setHasMadeAttempt(value: boolean) {
+      this.hasMadeAttempt = value;
+    },
+    setIsLoadingResults(value: boolean) {
+      this.isLoadingResults = value;
+    },
+    setSuggestedTracks(tracks: Track[]) {
+      this.suggestedTracks = tracks;
     },
   },
 

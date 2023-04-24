@@ -2,12 +2,17 @@
 import { useAppStore } from "../pinia/store";
 
 const store = useAppStore();
+
+function handleClickHome() {
+  store.goToScreen("home");
+  store.resetPathArtistsToEmpty();
+}
 </script>
 
 <template>
   <div class="title-bar">
     <div class="menu-button">Menu</div>
-    <h1 class="title" @click="store.goToScreen('home')">Collab Club</h1>
+    <h1 class="title" @click="handleClickHome">Collab Club</h1>
     <div class="spacer" />
     <div class="shadow" />
   </div>
@@ -19,6 +24,7 @@ const store = useAppStore();
   justify-content: space-between;
   position: relative;
   align-items: center;
+  padding-block: 0.8rem;
 
   .menu-button,
   .spacer {

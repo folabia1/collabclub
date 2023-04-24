@@ -7,3 +7,11 @@ defineProps<{ artist: Artist }>();
 <template>
   <img :src="artist.photoUrl" :alt="artist.name" />
 </template>
+
+<style>
+img {
+  width: 24vw;
+  height: 24vw;
+  border-radius: 8px;
+}
+</style>
