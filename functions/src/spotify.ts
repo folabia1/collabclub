@@ -313,7 +313,6 @@ exports.searchForTracksWithQuery = functions.https.onCall(
       accessToken,
       limit: limit ?? 50,
     });
-    if (!tracksResponse) return;
 
     // apply filters
     // filter to only keep tracks with multiple artists including this artist
@@ -382,7 +381,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
         axios.get<{ artists: { items: Artist[] } }>(searchUrl, {
           params: {
             q: `genre:${selectedGenre}`,
-            type: "artists",
+            type: "artist",
             limit: 1,
             offset: Math.floor(Math.random() * 300),
           },
@@ -395,10 +394,16 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
     // flatten batched responses to make it easier to work with
     const randomArtistsFromGenre: Artist[] = [];
     batchedResponses.forEach((response) => randomArtistsFromGenre.push(response.data.artists.items[0]));
-    return { artists: randomArtistsFromGenre, genre: selectedGenre };
+
+    const fullRandomArtistsFromGenre = await getMultipleArtistsFromSpotifyById(
+      randomArtistsFromGenre.map((artist) => artist.id),
+      accessToken
+    );
+
+    return { artists: fullRandomArtistsFromGenre, genre: selectedGenre };
   } catch (error) {
-    console.log(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
-    throw new Error(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
+    console.log(`[getRandomArtistsFromSameGenre] Unable to get artist - ${error}`);
+    throw new Error(`[getRandomArtistsFromSameGenre] Unable to get artist - ${error}`);
   }
 }
 
@@ -426,7 +431,7 @@ export async function getMultipleArtistsFromSpotifyById(artistsIds: string[], ac
     return artists;
   } catch (error) {
     console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-    return;
+    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
   }
 }
 
