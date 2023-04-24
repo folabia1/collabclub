@@ -2,5 +2,6 @@
   "tabWidth": 2,
   "useTabs": false,
   "printWidth": 130,
-  "quoteProps": "consistent"
+  "quoteProps": "consistent",
+  "bracketSpacing": true
 }

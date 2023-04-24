@@ -240,11 +240,14 @@ exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context })
       },
     });
     console.log(
-      `[setNewRoomArtists] Successfully updated artists in Room ${roomName}: ${selectedArtists[0]["name"]} and ${selectedArtists[1]["name"]}. Using the genre: ${genre}.`
+      `[setNewRoomArtists] Successfully updated artists in Room ${roomName}: ` +
+        `${selectedArtists[0]["name"]} and ${selectedArtists[1]["name"]}. Using the genre: ${genre}.`
     );
     return {
       artists: selectedArtists,
-      message: `[setNewRoomArtists] Successfully updated artists in Room ${roomName}: ${selectedArtists[0]["name"]} and ${selectedArtists[1]["name"]}. Using the genre: ${genre}.`,
+      message:
+        `[setNewRoomArtists] Successfully updated artists in Room ${roomName}: ` +
+        `${selectedArtists[0]["name"]} and ${selectedArtists[1]["name"]}. Using the genre: ${genre}.`,
     };
   } catch (error) {
     throw new Error(`[setNewRoomArtists] Unable to set new artists in Room ${roomName}.`);
