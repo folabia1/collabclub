@@ -1,10 +1,6 @@
 import axios from "axios";
 import * as functions from "firebase-functions";
 
-export type Token = {
-  access_token: string;
-};
-
 export type Artist = {
   id: string;
   name: string;
@@ -41,14 +37,16 @@ async function getSpotifyAuthToken() {
   };
 
   try {
-    const response = await axios.post<Token>("https://accounts.spotify.com/api/token", new URLSearchParams(data).toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await axios.post<{ access_token: string }>(
+      "https://accounts.spotify.com/api/token",
+      new URLSearchParams(data).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
 
-    return response;
+    return response.data.access_token;
   } catch (error) {
-    console.log(`Unable to retrieve Spotify API auth token - ${error}`);
-    return;
+    console.log(`[getSpotifyAuthToken] Unable to retrieve Spotify API auth token - ${error}`);
+    throw new Error(`[getSpotifyAuthToken] Unable to retrieve Spotify API auth token - ${error}`);
   }
 }
 
@@ -111,8 +109,8 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
 
     return albums;
   } catch (error) {
-    console.log(`Unable to retrieve tracks from Spotify: ${error}`);
-    return null;
+    console.log(`[getAllAlbumsByAnArtist] Unable to retrieve tracks from Spotify: ${error}`);
+    throw new Error(`[getAllAlbumsByAnArtist] Unable to retrieve tracks from Spotify: ${error}`);
   }
 }
 
@@ -138,22 +136,18 @@ async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
     return tracks;
   } catch (error) {
     console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-    return;
+    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
   }
 }
 
 async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
   // get all the artist's albums as album ids
   const albumsResponse = await getAllAlbumsByAnArtist(artistId, accessToken);
-  if (!albumsResponse) return;
-
   const albumIds = albumsResponse.map((album) => album.id);
 
   // get all the tracks from all the albums
   // includes: "album", "single", "appears_on" and "compilation"
   const tracksResponse = await getTracksFromAlbumIds(albumIds, accessToken);
-  if (!tracksResponse) return;
-
   return tracksResponse;
 }
 
@@ -186,12 +180,10 @@ async function searchForTracksInArtistDiscography({
   requireThisArtist,
   strictMode,
 }: searchDiscographyArgs) {
-  // request spotify access token
-  const tokenResponse = await getSpotifyAuthToken();
-  if (!tokenResponse) return;
+  const accessToken = await getSpotifyAuthToken(); // request spotify access token
 
   // get full artist discography (every track released by or featuring Artist)
-  const tracksResponse = await getAllTracksByAnArtist(artistId, tokenResponse.data.access_token);
+  const tracksResponse = await getAllTracksByAnArtist(artistId, accessToken);
   if (!tracksResponse) return;
 
   // apply filters
@@ -290,7 +282,7 @@ async function searchForTracksWithQuery({ trackName, artistName, accessToken, li
     return tracks;
   } catch (error) {
     console.log(`Unable to retrieve songs from Spotify: ${error}`);
-    return null;
+    throw new Error(`Unable to retrieve songs from Spotify: ${error}`);
   }
 }
 
@@ -312,14 +304,13 @@ async function searchForTracksWithQuery({ trackName, artistName, accessToken, li
 exports.searchForTracksWithQuery = functions.https.onCall(
   async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
     // request spotify access token
-    const tokenResponse = await getSpotifyAuthToken();
-    if (!tokenResponse) return;
+    const accessToken = await getSpotifyAuthToken();
 
     // search for tracks matching trackName and artistName
     const tracksResponse = await searchForTracksWithQuery({
       trackName,
       artistName: requireThisArtist ? artistName : undefined,
-      accessToken: tokenResponse.data.access_token,
+      accessToken,
       limit: limit ?? 50,
     });
     if (!tracksResponse) return;
@@ -346,7 +337,7 @@ exports.searchForTracksWithQuery = functions.https.onCall(
     const artistIds = Array.from(artistIdToPhotoUrlMap.keys());
 
     // make a request for the artists to get the photoUrl
-    const fullArtists = await getMultipleArtistsFromSpotifyById(artistIds, tokenResponse.data.access_token);
+    const fullArtists = await getMultipleArtistsFromSpotifyById(artistIds, accessToken);
     if (!fullArtists) return tracks;
 
     // set photoUrls in the idToUrl map
@@ -372,16 +363,13 @@ async function getAvailableGenreSeeds(accessToken: string) {
     return availableGenres;
   } catch (error) {
     console.log(`[getRandomGenre] Unable to get available genre seeds - ${error}`);
-    return;
+    throw new Error(`[getRandomGenre] Unable to get available genre seeds - ${error}`);
   }
 }
 
-async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: string) {
-  const tokenResponse = await getSpotifyAuthToken(); // request access token
-  if (!tokenResponse) return;
-
-  const availableGenres = await getAvailableGenreSeeds(tokenResponse.data.access_token);
-  if (!availableGenres) return;
+export async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: string) {
+  const accessToken = await getSpotifyAuthToken(); // request access token
+  const availableGenres = await getAvailableGenreSeeds(accessToken);
 
   const randomGenre = availableGenres[Math.floor(Math.random() * availableGenres.length)];
   const selectedGenre = genreName && availableGenres.includes(genreName) ? genreName : randomGenre;
@@ -398,7 +386,7 @@ async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: str
             limit: 1,
             offset: Math.floor(Math.random() * 300),
           },
-          headers: standardRequestHeaders(tokenResponse.data.access_token),
+          headers: standardRequestHeaders(accessToken),
         })
       );
     }
@@ -410,7 +398,7 @@ async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: str
     return { artists: randomArtistsFromGenre, genre: selectedGenre };
   } catch (error) {
     console.log(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
-    return;
+    return Promise.reject({ error: `[getRandomArtistFromGenre] Unable to get artist - ${error}` });
   }
 }
 
