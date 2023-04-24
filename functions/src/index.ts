@@ -50,7 +50,9 @@ exports.deleteGuestUsers = functions.pubsub.schedule("every day 03:00").onRun((c
 /* ROOM */
 exports.getRoom = functions.https.onCall(async (data) => {
   const roomsRef = firestore.collection("rooms");
-  const query = data?.activityLevel ? roomsRef.where("players", "==", data.activityLevel === "active").limit(1) : roomsRef.limit(1);
+  const query = data?.activityLevel
+    ? roomsRef.where("players", "==", data.activityLevel === "active").limit(1)
+    : roomsRef.limit(1);
   const querySnapshot = await query.get();
 
   // handle error, room not found
@@ -68,81 +70,83 @@ exports.getRoom = functions.https.onCall(async (data) => {
   };
 });
 
-exports.joinRoom = functions.https.onCall(async ({ roomName, role }: { roomName: string; role?: "Player" | "Spectator" }, context) => {
-  // if user is not signed in -> null
-  if (!context?.auth?.uid) {
-    console.log("[joinRoom] No user provided. Unable to add user to room.");
-    throw new Error("[joinRoom] No user provided. Unable to add user to room.");
-  }
+exports.joinRoom = functions.https.onCall(
+  async ({ roomName, role }: { roomName: string; role?: "Player" | "Spectator" }, context) => {
+    // if user is not signed in -> null
+    if (!context?.auth?.uid) {
+      console.log("[joinRoom] No user provided. Unable to add user to room.");
+      throw new Error("[joinRoom] No user provided. Unable to add user to room.");
+    }
 
-  // no room provided -> null
-  if (!roomName || typeof roomName !== "string") {
-    console.log(`[joinRoom] Argument "roomName" must be a string. Unable to add User ${context.auth.uid} to room.`);
-    throw new Error(`[joinRoom] Argument "roomName" must be a string. Unable to add User ${context.auth.uid} to room.`);
-  }
+    // no room provided -> null
+    if (!roomName || typeof roomName !== "string") {
+      console.log(`[joinRoom] Argument "roomName" must be a string. Unable to add User ${context.auth.uid} to room.`);
+      throw new Error(`[joinRoom] Argument "roomName" must be a string. Unable to add User ${context.auth.uid} to room.`);
+    }
 
-  const roomRef = firestore.doc(`rooms/${roomName}`);
-  const snapshot = await roomRef.get();
-  const snapshotData = snapshot.data();
+    const roomRef = firestore.doc(`rooms/${roomName}`);
+    const snapshot = await roomRef.get();
+    const snapshotData = snapshot.data();
 
-  // if room does not exist -> null
-  if (!snapshot.exists || !snapshotData) {
-    console.log(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
-    throw new Error(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
-  }
+    // if room does not exist -> null
+    if (!snapshot.exists || !snapshotData) {
+      console.log(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
+      throw new Error(`[joinRoom] Room does not exist. Unable to add User ${context.auth.uid} to Room ${roomName}.`);
+    }
 
-  // TODO: add ability to add a user to a room as a spectator even if there is space for them as a player
+    // TODO: add ability to add a user to a room as a spectator even if there is space for them as a player
 
-  // user is alreday a player in room -> "Player"
-  if (snapshotData["players"].includes(context.auth.uid)) {
-    console.log(`[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`);
-    return {
-      room: { role: "Player" },
-      mmessage: `[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`,
-    };
-  }
-
-  // user is currently a spectator
-  if (snapshotData["spectators"].includes(context.auth.uid)) {
-    if (snapshotData["players"].length < maxPlayersPerRoom) {
-      // room has space for user -> "Player"
-      roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
-      console.log(`[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`);
+    // user is alreday a player in room -> "Player"
+    if (snapshotData["players"].includes(context.auth.uid)) {
+      console.log(`[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`);
       return {
         room: { role: "Player" },
-        mmessage: `[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`,
+        mmessage: `[joinRoom] User ${context.auth.uid} is already a player in Room ${roomName}.`,
+      };
+    }
+
+    // user is currently a spectator
+    if (snapshotData["spectators"].includes(context.auth.uid)) {
+      if (snapshotData["players"].length < maxPlayersPerRoom) {
+        // room has space for user -> "Player"
+        roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
+        console.log(`[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`);
+        return {
+          room: { role: "Player" },
+          mmessage: `[joinRoom] User ${context.auth.uid} moved from Spectator to Player in Room ${roomName}.`,
+        };
+      } else {
+        // room does not have space for user -> "Spectator"
+        roomRef.update({ spectators: [...snapshotData["spectators"], context.auth.uid] });
+        console.log(`[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`);
+        return {
+          room: { role: "Spectator" },
+          mmessage: `[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`,
+        };
+      }
+    }
+
+    // user is not a player or spectator in room
+    if (snapshotData["players"].length < 6) {
+      // room has space for user => "Player"
+      roomRef.update({ active: true });
+      roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
+      console.log(`[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`);
+      return {
+        role: "Player",
+        message: `[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`,
       };
     } else {
       // room does not have space for user -> "Spectator"
       roomRef.update({ spectators: [...snapshotData["spectators"], context.auth.uid] });
-      console.log(`[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`);
+      console.log(`[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`);
       return {
-        room: { role: "Spectator" },
-        mmessage: `[joinRoom] Room ${roomName} is full. Unable to move User ${context.auth.uid} from Spectator to Player in.`,
+        role: "Spectator",
+        message: `[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`,
       };
     }
   }
-
-  // user is not a player or spectator in room
-  if (snapshotData["players"].length < 6) {
-    // room has space for user => "Player"
-    roomRef.update({ active: true });
-    roomRef.update({ players: [...snapshotData["players"], context.auth.uid] });
-    console.log(`[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`);
-    return {
-      role: "Player",
-      message: `[joinRoom] User ${context.auth.uid} addeed to Room ${roomName} as a Player.`,
-    };
-  } else {
-    // room does not have space for user -> "Spectator"
-    roomRef.update({ spectators: [...snapshotData["spectators"], context.auth.uid] });
-    console.log(`[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`);
-    return {
-      role: "Spectator",
-      message: `[joinRoom] User ${context.auth.uid} added to Room ${roomName} as a Spectator.`,
-    };
-  }
-});
+);
 
 exports.leaveRoom = functions.https.onCall(async ({ roomName }, context) => {
   // if user is not signed in
@@ -204,7 +208,9 @@ exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context })
   // no room provided
   if (!roomName || typeof roomName !== "string") {
     console.log(`[setNewRoomArtists] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`);
-    throw new Error(`[setNewRoomArtists] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`);
+    throw new Error(
+      `[setNewRoomArtists] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`
+    );
   }
 
   const roomRef = firestore.doc(`rooms/${roomName}`);
@@ -271,7 +277,10 @@ exports.onRoomUpdated = functions.firestore.document("/rooms/{roomName}").onUpda
   const dataBefore = change.before.data();
   const dataAfter = change.after.data();
   // check for CHANGE (in initial and final artists)
-  if (dataAfter["initialArtist"].id != dataBefore["initialArtist"].id || dataAfter["finalArtist"].id != dataBefore["finalArtist"].id) {
+  if (
+    dataAfter["initialArtist"].id != dataBefore["initialArtist"].id ||
+    dataAfter["finalArtist"].id != dataBefore["finalArtist"].id
+  ) {
     promises.push(change.after.ref.set({ lastChange: admin.firestore.Timestamp.now() }, { merge: true }));
     console.log(`[onRoomUpdated] Updating lastChange for Room ${context.params.roomName}.`);
   }

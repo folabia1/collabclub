@@ -398,7 +398,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
     return { artists: randomArtistsFromGenre, genre: selectedGenre };
   } catch (error) {
     console.log(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
-    return Promise.reject({ error: `[getRandomArtistFromGenre] Unable to get artist - ${error}` });
+    throw new Error(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
   }
 }
 
@@ -433,7 +433,6 @@ export async function getMultipleArtistsFromSpotifyById(artistsIds: string[], ac
 exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
   // get 2 random artists from the genre provided, or a random genre if none provided
   const artistsResponse = await getRandomArtistsFromSameGenre(2, genreName);
-  if (!artistsResponse) return Promise.reject("[getRandomStartingArtists] Unable to get starting artists.");
 
   return {
     genre: artistsResponse.genre,
