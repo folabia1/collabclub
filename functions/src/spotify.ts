@@ -42,7 +42,7 @@ async function getSpotifyAuthToken() {
 
   try {
     const response = await axios.post<Token>("https://accounts.spotify.com/api/token", new URLSearchParams(data).toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
     });
 
     return response;
@@ -71,7 +71,7 @@ function createTrackNameVariations(trackName: string) {
 function isTrackNameSimilar(songNameGuess: string, actualSongName: string, strictMode = false) {
   const variations = createTrackNameVariations(actualSongName);
   for (const variation of variations) {
-    if (strictMode && songNameGuess.localeCompare(variation, undefined, { sensitivity: "base" }) === 0) return true;
+    if (strictMode && songNameGuess.localeCompare(variation, undefined, {sensitivity: "base"}) === 0) return true;
     if (!strictMode && songNameGuess.toLowerCase().startsWith(actualSongName.toLowerCase().slice(0, 4))) return true;
   }
   return false;
@@ -83,7 +83,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
   // do initial request to work out how many more requests are needed to get all albums
   try {
     const initialResponse = await axios.get<{ total: number; items: Album[] }>(searchUrl, {
-      params: { offset: "0", limit: "50" },
+      params: {offset: "0", limit: "50"},
       headers: standardRequestHeaders(accessToken),
     });
 
@@ -94,7 +94,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
     for (let i = 0; i < numAdditionalRequestsToMake; i++) {
       batchRequests.push(
         axios.get<{ total: number; items: Album[] }>(searchUrl, {
-          params: { offset: `${(i + 1) * 50}`, limit: "50" },
+          params: {offset: `${(i + 1) * 50}`, limit: "50"},
           headers: standardRequestHeaders(accessToken),
         })
       );
@@ -117,7 +117,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
 }
 
 async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
-  const searchUrl = `https://api.spotify.com/v1/tracks`;
+  const searchUrl = "https://api.spotify.com/v1/tracks";
   try {
     const responses = [];
     // endpoint only returns 50 Tracks at a time so
@@ -125,7 +125,7 @@ async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
     const numRequestsToMake = Math.ceil(albumIds.length / 50);
     for (let i = 0; i < numRequestsToMake; i++) {
       const tracksResponse = await axios.get<{ tracks: Track[] }>(searchUrl, {
-        params: { ids: albumIds.slice(50 * i, 50 * i + 50).toString() },
+        params: {ids: albumIds.slice(50 * i, 50 * i + 50).toString()},
         headers: standardRequestHeaders(accessToken),
       });
       responses.push(tracksResponse);
@@ -226,7 +226,7 @@ type getFeaturesArgs = {
  * @param {string} data.artistId2
  * @param {boolean} data.strictMode whether to enforce the strong filter requiring name to be exactly correct
  */
-async function getFeaturesBetweenTwoArtists({ artistId1, artistId2, strictMode }: getFeaturesArgs) {
+async function getFeaturesBetweenTwoArtists({artistId1, artistId2, strictMode}: getFeaturesArgs) {
   const tracksResponse = await searchForTracksInArtistDiscography({
     artistId: artistId1,
     requireMulipleArtists: true,
@@ -244,7 +244,7 @@ async function getFeaturesBetweenTwoArtists({ artistId1, artistId2, strictMode }
 exports.getFeaturesBetweenTwoArtists = functions.https.onCall(getFeaturesBetweenTwoArtists);
 
 type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
-async function searchForTracksWithQuery({ trackName, artistName, accessToken, limit }: SearchArgs) {
+async function searchForTracksWithQuery({trackName, artistName, accessToken, limit}: SearchArgs) {
   const url = "https://api.spotify.com/v1/search";
   try {
     // do initial request to work out how many more requests are needed to get all songs
@@ -310,7 +310,7 @@ async function searchForTracksWithQuery({ trackName, artistName, accessToken, li
  * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
  */
 exports.searchForTracksWithQuery = functions.https.onCall(
-  async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
+  async ({trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode}) => {
     // request spotify access token
     const tokenResponse = await getSpotifyAuthToken();
     if (!tokenResponse) return;
@@ -346,7 +346,7 @@ exports.searchForTracksWithQuery = functions.https.onCall(
     const artistIds = Array.from(artistIdToPhotoUrlMap.keys());
 
     // make a request for the artists to get the photoUrl
-    const fullArtists = await getMultipleArtistsFromSpotify(artistIds, tokenResponse.data.access_token);
+    const fullArtists = await getMultipleArtistsFromSpotifyById(artistIds, tokenResponse.data.access_token);
     if (!fullArtists) return tracks;
 
     // set photoUrls in the idToUrl map
@@ -364,57 +364,57 @@ exports.searchForTracksWithQuery = functions.https.onCall(
 );
 
 /* ARTISTS */
-async function getRandomArtistFromGenre(genreName: string) {
-  // arg 'genreName' should be randomly selected before calling function to keep starting and final artist in same genre
-
-  // 1. get random playlist of selected genre
-  // TODO: move to spotify.ts and use genre seeds
-  const playlistsIds = Object.values(playlists[genreName]);
-  const randPlaylistId = playlistsIds[Math.floor(Math.random() * playlistsIds.length)];
-
-  // 2. get all artists from selected playlist
-  const tokenResponse = await getSpotifyAuthToken(); // request access token
-  const searchUrl = `https://api.spotify.com/v1/playlists/${randPlaylistId}/tracks`;
+async function getAvailableGenreSeeds(accessToken: string) {
   try {
-    if (!tokenResponse) {
-      throw new Error("No token available.");
-    }
-
-    const res = await axios.get<{ items: { track: Track }[] }>(searchUrl, {
-      params: {
-        fields: "items(track(artists(id, name)))",
-      },
-      headers: standardRequestHeaders(tokenResponse.data.access_token),
-    });
-    const artists: Artist[] = [];
-    const data = await res.data.items;
-    data.forEach((item) => {
-      item.track.artists.forEach((artist) => {
-        artists.push(artist);
-      });
-    });
-    // 3. select one random artist from all artists
-    const randArtist = artists[Math.floor(Math.random() * artists.length)];
-    // get spotify photoUrl using artist.id
-    const searchArtistUrl = `https://api.spotify.com/v1/artists/${randArtist.id}`;
-    try {
-      const response = await axios.get(searchArtistUrl, {
-        headers: standardRequestHeaders(tokenResponse.data.access_token),
-      });
-      const photoUrl = response.data.images[response.data.images.length - 1]["url"] ?? null;
-      randArtist["photoUrl"] = photoUrl;
-      return randArtist;
-    } catch (error) {
-      console.log(`[getRandomArtistFromGenre] ${error}`);
-      return;
-    }
+    const searchUrl = "https://api.spotify.com/v1/recommendations/available-genre-seeds";
+    const genreResponse = await axios.get<{ genres: string[] }>(searchUrl, {headers: standardRequestHeaders(accessToken)});
+    const availableGenres = genreResponse.data.genres;
+    return availableGenres;
   } catch (error) {
-    console.log(`[getRandomArtistFromGenre] ${error}`);
+    console.log(`[getRandomGenre] Unable to get available genre seeds - ${error}`);
     return;
   }
 }
 
-export async function getMultipleArtistsFromSpotify(artistsIds: string[], accessToken: string) {
+async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: string) {
+  const tokenResponse = await getSpotifyAuthToken(); // request access token
+  if (!tokenResponse) return;
+
+  const availableGenres = await getAvailableGenreSeeds(tokenResponse.data.access_token);
+  if (!availableGenres) return;
+
+  const randomGenre = availableGenres[Math.floor(Math.random() * availableGenres.length)];
+  const selectedGenre = genreName && availableGenres.includes(genreName) ? genreName : randomGenre;
+  try {
+    const searchUrl = "https://api.spotify.com/v1/search/";
+    const responses = [];
+    // carry out an individual resquest for each artist so that each one is random
+    for (let i = 0; i < numArtists; i++) {
+      responses.push(
+        axios.get<{ artists: { items: Artist[] } }>(searchUrl, {
+          params: {
+            q: `genre:${selectedGenre}`,
+            type: "artists",
+            limit: 1,
+            offset: Math.floor(Math.random() * 300),
+          },
+          headers: standardRequestHeaders(tokenResponse.data.access_token),
+        })
+      );
+    }
+    const batchedResponses = await Promise.all(responses);
+
+    // flatten batched responses to make it easier to work with
+    const randomArtistsFromGenre: Artist[] = [];
+    batchedResponses.forEach((response) => randomArtistsFromGenre.push(response.data.artists.items[0]));
+    return {artists: randomArtistsFromGenre, genre: selectedGenre};
+  } catch (error) {
+    console.log(`[getRandomArtistFromGenre] Unable to get artist - ${error}`);
+    return;
+  }
+}
+
+export async function getMultipleArtistsFromSpotifyById(artistsIds: string[], accessToken: string) {
   try {
     const responses = [];
     // endpoint only returns 50 artists at a time so
@@ -442,65 +442,13 @@ export async function getMultipleArtistsFromSpotify(artistsIds: string[], access
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
-  // select random genre if one is not passed as argument
-  // TODO: move to spotify.ts and use genre seeds
-  const genres = Object.keys(playlists);
-  const randomGenre = genres[Math.floor(Math.random() * genres.length)];
-  const selectedGenre = genreName && genres.includes(genreName) ? genreName : randomGenre;
+exports.getRandomStartingArtists = functions.https.onCall(async ({genreName}: { genreName: string | undefined }) => {
+  // get 2 random artists from the genre provided, or a random genre if none provided
+  const artistsResponse = await getRandomArtistsFromSameGenre(2, genreName);
+  if (!artistsResponse) return;
 
-  // select 2 random artists in the selected genre
-  const selectedArtists: { [index: string]: Artist } = {};
-  const maxRetries = 10;
-  for (let i = 0; i < maxRetries && Object.keys(selectedArtists).length < 2; i++) {
-    const randArtistData = await getRandomArtistFromGenre(selectedGenre);
-    if (!randArtistData?.id) continue;
-
-    selectedArtists[randArtistData.id] = randArtistData;
-  }
-  const selectedArtistsData = Object.values(selectedArtists);
-
-  // handle error getting artists
-  if (selectedArtistsData.length < 2) {
-    console.log("Unable to select Starting Artists.");
-    return;
-  }
-
-  // return selected artists
-  console.log(`Starting Artists selected: ${selectedArtistsData[0].name} and ${selectedArtistsData[1].name}`);
   return {
-    genre: selectedGenre,
-    artists: selectedArtistsData,
+    genre: artistsResponse.genre,
+    artists: artistsResponse.artists,
   };
-});
-
-exports.searchForArtistOnSpotify = functions.https.onCall(async (data) => {
-  const tokenResponse = await getSpotifyAuthToken(); // request access token
-  if (!tokenResponse) return;
-  const searchUrl = "https://api.spotify.com/v1/search";
-
-  try {
-    const res = await axios.get(searchUrl, {
-      params: {
-        q: `${data.artistName.replace(/\s/g, "%20")}`,
-        type: "artist",
-        limit: "4",
-        offset: "0",
-        market: "US",
-      },
-      headers: standardRequestHeaders(tokenResponse.data.access_token),
-    });
-    const searchResults = res.data.artists.items;
-    const artistsData: Artist[] = searchResults.map(({ id, name, images }: Artist) => {
-      return {
-        id,
-        name,
-        photoUrl: images?.[images.length - 1]?.["url"],
-      };
-    });
-    return artistsData;
-  } catch (error) {
-    console.log(`[searchForArtistOnSpotify] ${error}`);
-    return error;
-  }
 });

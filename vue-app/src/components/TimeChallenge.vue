@@ -68,11 +68,7 @@ onMounted(() => {
 
     <button @click="refreshArtists" :disabled="isLoading">Refresh Artists</button>
 
-    <TrackSearchInput
-      v-if="store?.currentPathArtist?.name"
-      :artist-name="store.currentPathArtist.name"
-      :disabled="isLoading"
-    />
+    <TrackSearchInput v-if="store?.currentPathArtist?.name" :disabled="isLoading" />
   </div>
 </template>
 

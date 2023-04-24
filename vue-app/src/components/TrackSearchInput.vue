@@ -4,23 +4,26 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
 import { ref } from "vue";
 
-const props = defineProps<{ artistName: string; disabled: boolean }>();
+const props = defineProps<{ disabled: boolean }>();
 
 type SearchQuery = {
   trackName: string;
-  artistName: string;
+  artistId: string;
   requireMultipleArtists: boolean;
   requireThisArtist: boolean;
   strictMode: boolean;
 };
-const searchForTracksWithQuery = httpsCallable<SearchQuery, Track[]>(functions, "searchForTracksWithQuery");
+const searchForTracksInArtistDiscography = httpsCallable<SearchQuery, Track[]>(
+  functions,
+  "searchForTracksInArtistDiscography"
+);
 async function suggestTracks(trackGuess: string) {
   isCheckingAnswer.value = true;
   hasMadeAttempt.value = true;
   try {
-    const tracksResponse = await searchForTracksWithQuery({
+    const tracksResponse = await searchForTracksInArtistDiscography({
       trackName: trackGuess,
-      artistName: props.artistName,
+      artistId: store.currentPathArtist?.id ?? "",
       requireMultipleArtists: true,
       requireThisArtist: true,
       strictMode: false,
@@ -56,7 +59,7 @@ const handleClickArtist = (artist: Artist, track: Track) => {
 <template>
   <div>
     <i clas="fa fa-info-circle" />
-    <p>Search for a track with {{ artistName }} and another artist.</p>
+    <p>Search for a track with {{ store.currentPathArtist?.name ?? "this artist" }} and another artist.</p>
   </div>
   <input type="search" @change="(e) => handleInputChange(e)" :disabled="disabled" />
   <span v-if="suggestedTracks.length === 0 && !isCheckingAnswer && hasMadeAttempt">No results</span>
@@ -64,7 +67,7 @@ const handleClickArtist = (artist: Artist, track: Track) => {
   <div v-for="track in suggestedTracks">
     <p>{{ track.name }}</p>
     <template v-for="artist in track.artists">
-      <span v-if="artist.name == artistName">{{ artist.name }}</span>
+      <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
       <button v-else @click="() => handleClickArtist(artist, track)">{{ artist.name }}</button>
     </template>
   </div>
