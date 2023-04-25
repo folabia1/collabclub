@@ -24,7 +24,7 @@ export type Album = {
   artists: Artist[];
 };
 
-export const standardRequestHeaders = (accessToken: string) => ({
+const standardRequestHeaders = (accessToken: string) => ({
   "Accept": "application/json",
   "Authorization": `Bearer ${accessToken}`,
   "Content-Type": "application/json",
@@ -171,13 +171,6 @@ type searchDiscographyArgs = {
  *
  * When using the `strictMode` flag it filters tracks more strongly, only keeping the
  * track(s) with exactly the same name.
- *
- * @param {Object} data
- * @param {string} data.trackName
- * @param {string} data.artistId
- * @param {boolean} data.requireMulipleArtists
- * @param {boolean} data.requireThisArtist
- * @param {boolean} data.strictMode whether to enforce the strong filter requiring name to be exactly correct
  */
 async function searchForTracksInArtistDiscography({
   trackName,
@@ -186,22 +179,29 @@ async function searchForTracksInArtistDiscography({
   requireThisArtist,
   strictMode,
 }: searchDiscographyArgs) {
-  const accessToken = await getSpotifyAuthToken(); // request spotify access token
+  try {
+    const accessToken = await getSpotifyAuthToken(); // request spotify access token
 
-  // get full artist discography (every track released by or featuring Artist)
-  const tracksResponse = await getAllTracksByAnArtist(artistId, accessToken);
+    // get full artist discography (every track released by or featuring Artist)
+    const tracksResponse = await getAllTracksByAnArtist(artistId, accessToken);
 
-  // apply filters
-  const filteredTracks = tracksResponse.filter((track) => {
-    return (
-      (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
-      (!requireThisArtist || track.artists.some((artist) => artist.id === artistId)) && // correct artist
-      (!trackName || isTrackNameSimilar(trackName, track.name, strictMode)) // name matches trackNameQuery
+    // apply filters
+    const filteredTracks = tracksResponse.filter((track) => {
+      return (
+        (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+        (!requireThisArtist || track.artists.some((artist) => artist.id === artistId)) && // correct artist
+        (!trackName || isTrackNameSimilar(trackName, track.name, strictMode)) // name matches trackNameQuery
+      );
+    });
+    console.log(
+      `[searchForTracksInArtistDiscography] ${tracksResponse.length} tracks found and filtered to ${filteredTracks.length}`
     );
-  });
-  console.log(`[searchForTracksWithQuery] ${tracksResponse.length} tracks found and filtered to ${filteredTracks.length}`);
 
-  return filteredTracks;
+    return filteredTracks;
+  } catch (error) {
+    console.log(`[searchForTracksInArtistDiscography] Unable to get all tracks from Artist ${artistId}'s discography`);
+    throw new Error(`[searchForTracksInArtistDiscography] Unable to get all tracks from Artist ${artistId}'s discography`);
+  }
 }
 exports.searchForTracksInArtistDiscography = functions.https.onCall(searchForTracksInArtistDiscography);
 
@@ -234,10 +234,38 @@ async function getFeaturesBetweenTwoArtists({ artistId1, artistId2, strictMode }
 
 exports.getFeaturesBetweenTwoArtists = functions.https.onCall(getFeaturesBetweenTwoArtists);
 
-type SearchArgs = { trackName: string; artistName: string | undefined; accessToken: string; limit: number | undefined };
-async function searchForTracksWithQuery({ trackName, artistName, accessToken, limit }: SearchArgs) {
-  const url = "https://api.spotify.com/v1/search";
+type SearchArgs = {
+  trackName: string;
+  artistName?: string;
+  requireMulipleArtists: boolean;
+  requireThisArtist: boolean;
+  requireSimilarName: boolean;
+  limit?: number;
+  strictMode: boolean;
+};
+
+/**
+ * Takes a track name and artist name as search query and seaches Spotify API for
+ * tracks. Filters to only songs that have MULTIPLE artists including the artistName.
+ *
+ * When using the `strictMode` flag it filters tracks more strongly, only keeping the
+ * track(s) with exactly the same name.
+ */
+async function searchForTracksWithQuery({
+  trackName,
+  artistName,
+  requireMulipleArtists,
+  requireThisArtist,
+  requireSimilarName,
+  limit = 50,
+  strictMode,
+}: SearchArgs) {
   try {
+    // request spotify access token
+    const accessToken = await getSpotifyAuthToken();
+
+    const url = "https://api.spotify.com/v1/search";
+
     // do initial request to work out how many more requests are needed to get all songs
     const initialResponse = await axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
       params: {
@@ -257,9 +285,7 @@ async function searchForTracksWithQuery({ trackName, artistName, accessToken, li
       batchRequests.push(
         axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
           params: {
-            q:
-              `${trackName.replace(/\s/g, "%20")}%20track:${trackName.replace(/\s/g, "%20")}` +
-              `${artistName ? `%20artist:${artistName.replace(/\s/g, "%20")}` : ""}`,
+            q: `${trackName.replace(/\s/g, "")}` + `${artistName ? `%20artist:${artistName.replace(/\s/g, "")}` : ""}`,
             type: "track",
             offset: `${(i + 1) * 50}`,
             limit: "50",
@@ -278,78 +304,29 @@ async function searchForTracksWithQuery({ trackName, artistName, accessToken, li
     const batchedTracksResponses = await Promise.all(batchResponses);
     batchedTracksResponses.forEach((response) => tracks.push(...response.data.tracks.items));
 
-    return tracks;
-  } catch (error) {
-    console.log(`Unable to retrieve songs from Spotify: ${error}`);
-    throw new Error(`Unable to retrieve songs from Spotify: ${error}`);
-  }
-}
-
-/**
- * Takes a track name and artist name as search query and seaches Spotify API for
- * tracks. Filters to only songs that have MULTIPLE artists including the artistName.
- *
- * When using the `strictMode` flag it filters tracks more strongly, only keeping the
- * track(s) with exactly the same name.
- *
- * @param {Object} data
- * @param {string} data.trackName the Track name value to be used in the search query
- * @param {string} data.artistName the Artist name value to be used in the search query
- * @param {boolean} data.requireMulipleArtists
- * @param {boolean} data.requireThisArtist
- * @param {number} data.limit
- * @param {boolean} data.strictMode whether to ensure that the name is exactly correct
- */
-exports.searchForTracksWithQuery = functions.https.onCall(
-  async ({ trackName, artistName, requireMulipleArtists, requireThisArtist, limit, strictMode }) => {
-    // request spotify access token
-    const accessToken = await getSpotifyAuthToken();
-
-    // search for tracks matching trackName and artistName
-    const tracksResponse = await searchForTracksWithQuery({
-      trackName,
-      artistName: requireThisArtist ? artistName : undefined,
-      accessToken,
-      limit: limit ?? 50,
-    });
-
     // apply filters
     // filter to only keep tracks with multiple artists including this artist
     // also filtering out tracks that don't have the same title as data.trackName
-    const tracks = tracksResponse.filter((track) => {
-      return (
-        (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
-        (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
-        isTrackNameSimilar(trackName, track.name, strictMode) // name is right (or almost right)
-      );
-    });
-    console.log(`[searchForTracksWithQuery] ${tracksResponse.length} tracks found and filtered to ${tracks.length}`);
-    tracksResponse.forEach((track) => {
-      console.log([track.name, track.artists.map((artist) => artist.name)]);
-    });
-
-    // the tracks endpoint doesn't return photoUrl for track artists
-    // get all the artistIds from the tracks
-    const artistIdToPhotoUrlMap = new Map<string, string>();
-    tracks.forEach((track) => track.artists.forEach((artist) => artistIdToPhotoUrlMap.set(artist.id, "")));
-    const artistIds = Array.from(artistIdToPhotoUrlMap.keys());
-
-    // make a request for the artists to get the photoUrl
-    const fullArtists = await getMultipleArtistsFromSpotifyById(artistIds, accessToken);
-
-    // set photoUrls in the idToUrl map
-    fullArtists.forEach((artist) => artistIdToPhotoUrlMap.set(artist.id, artist.images?.[artist.images.length - 1]?.url ?? ""));
-
-    // add the photoUrl information to the tracks
-    tracks.forEach((track, trackIndex) => {
-      track.artists.forEach((artist, artistIndex) => {
-        tracks[trackIndex].artists[artistIndex].photoUrl = artistIdToPhotoUrlMap.get(artist.id) ?? "";
-      });
-    });
+    const hasFilters = requireMulipleArtists || requireThisArtist || requireSimilarName;
+    const filteredTracks = hasFilters
+      ? tracks.filter((track) => {
+          return (
+            (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+            (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
+            (!requireSimilarName || isTrackNameSimilar(trackName, track.name, strictMode)) // name is right (or almost right)
+          );
+        })
+      : tracks;
+    console.log(`[searchForTracksWithQuery] ${tracks.length} tracks found and filtered to ${filteredTracks.length}`);
 
     return tracks;
+  } catch (error) {
+    console.log(`[searchForTracksWithQuery] Unable to retrieve songs from Spotify: ${error}`);
+    throw new Error(`[searchForTracksWithQuery] Unable to retrieve songs from Spotify: ${error}`);
   }
-);
+}
+
+exports.searchForTracksWithQuery = functions.https.onCall(searchForTracksWithQuery);
 
 /* ARTISTS */
 async function getAvailableGenreSeeds(accessToken: string) {
@@ -365,12 +342,12 @@ async function getAvailableGenreSeeds(accessToken: string) {
 }
 
 export async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: string) {
-  const accessToken = await getSpotifyAuthToken(); // request access token
-  const availableGenres = await getAvailableGenreSeeds(accessToken);
-
-  const randomGenre = availableGenres[Math.floor(Math.random() * availableGenres.length)];
-  const selectedGenre = genreName && availableGenres.includes(genreName) ? genreName : randomGenre;
   try {
+    const accessToken = await getSpotifyAuthToken(); // request access token
+    const availableGenres = await getAvailableGenreSeeds(accessToken);
+
+    const randomGenre = availableGenres[Math.floor(Math.random() * availableGenres.length)];
+    const selectedGenre = genreName && availableGenres.includes(genreName) ? genreName : randomGenre;
     const searchUrl = "https://api.spotify.com/v1/search/";
     const responses = [];
     // carry out an individual resquest for each artist so that each one is random
