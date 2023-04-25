@@ -4,7 +4,7 @@ import { useAppStore } from "../pinia/store";
 const props = defineProps<{ text: string; active: boolean; disabled: boolean }>();
 
 const store = useAppStore();
-const toggleSelected = () => store.selectGenre(props.text);
+const toggleSelected = () => store.toggleGenreSelected(props.text);
 </script>
 
 <template>
@@ -15,14 +15,31 @@ const toggleSelected = () => store.selectGenre(props.text);
 
 <style lang="scss">
 button.genre-chip {
+  border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+  border: 1px var(--accent) solid;
   background-color: transparent;
-
-  &.active {
-    background-color: green;
+  font-weight: 700;
+  @media (prefers-color-scheme: dark) {
+    color: var(--accent);
   }
 
   &:disabled {
-    background-color: black;
+    border-color: var(--disabled);
+    background-color: transparent;
+    &.active {
+      border-color: var(--disabled);
+      background-color: var(--disabled);
+    }
+  }
+
+  &.active {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    @media (prefers-color-scheme: dark) {
+      color: var(--background-primary);
+    }
   }
 }
 </style>

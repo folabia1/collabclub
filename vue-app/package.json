@@ -4,11 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3001",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "build:functions": "cd ../functions && npm run build",
+    "preview": "vite preview",
+    "emulators:start": "source ~/.nvm/nvm.sh && nvm use 16 && npm run build:functions && firebase emulators:start --import=../saved-emulator-data --export-on-exit",
+    "emulators:stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9"
   },
   "dependencies": {
+    "firebase": "^9.20.0",
     "pinia": "^2.0.35",
     "vue": "^3.2.47"
   },

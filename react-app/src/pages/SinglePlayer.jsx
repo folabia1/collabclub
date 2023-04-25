@@ -7,7 +7,7 @@ import { GenreSelector } from "../components/GenreSelector";
 // import { PlaylistsContext } from "../App";
 
 export function SinglePlayer() {
-  const checkSongForArtists = httpsCallable(functions, "checkSongForArtists");
+  const checkSongForTwoArtists = httpsCallable(functions, "checkSongForTwoArtists");
   const getRandomStartingArtists = httpsCallable(functions, "getRandomStartingArtists");
 
   const { user } = useContext(UserContext);
@@ -31,19 +31,19 @@ export function SinglePlayer() {
       mixGenres,
     });
     console.log(
-      `Received new artists. %c${artistsResponse.data[0].name} and ${artistsResponse.data[1].name}`,
+      `Received new artists. %c${artistsResponse.data.artists[0].name} and ${artistsResponse.data.artists[1].name}`,
       "font-weight: bold"
     );
     setInfo(
       <span>
         Received new artists.{" "}
         <strong>
-          {artistsResponse.data[0].name} and {artistsResponse.data[1].name}
+          {artistsResponse.data.artists[0].name} and {artistsResponse.data.artists[1].name}
         </strong>
       </span>
     );
     setFeaturePath(() => {
-      return [{ artist: artistsResponse.data[0], track: null }, { artist: artistsResponse.data[1] }];
+      return [{ artist: artistsResponse.data.artists[0], track: null }, { artist: artistsResponse.data.artists[1] }];
     });
     if (!result) {
       setStreak(0);
@@ -64,7 +64,7 @@ export function SinglePlayer() {
         name: nextArtistGuess["name"],
       },
     };
-    const trackResponse = await checkSongForArtists(songGuessData);
+    const trackResponse = await checkSongForTwoArtists(songGuessData);
 
     if (trackResponse.data.trackFound) {
       setFeaturePath((prevFeaturePath) => {
@@ -117,7 +117,7 @@ export function SinglePlayer() {
         name: featurePath[featurePath.length - 1]["artist"]["name"],
       },
     };
-    const trackResponse = await checkSongForArtists(songGuessData);
+    const trackResponse = await checkSongForTwoArtists(songGuessData);
     if (trackResponse.data.trackFound) {
       setFeaturePath((prevFeaturePath) => {
         prevFeaturePath[prevFeaturePath.length - 2]["track"] = {

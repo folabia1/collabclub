@@ -17,7 +17,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "vite",
+    "start": "vite --port 3000",
     "build": "tsc && vite build",
     "build:functions": "cd ../functions && npm run build",
     "serve": "vite preview",
