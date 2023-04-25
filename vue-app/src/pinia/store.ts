@@ -61,6 +61,11 @@ export const useAppStore = defineStore("app", {
       this.screen = gameMode;
     },
     /* Genres */
+    setAvailableGenres(avilableGenres: string[]) {
+      avilableGenres.forEach((genreName) => {
+        this.genres[genreName] = this.genres[genreName] || false;
+      });
+    },
     toggleGenreSelected(genreName: string) {
       this.genres[genreName] = !this.genres[genreName];
     },

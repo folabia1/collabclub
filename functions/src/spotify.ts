@@ -329,8 +329,9 @@ async function searchForTracksWithQuery({
 exports.searchForTracksWithQuery = functions.https.onCall(searchForTracksWithQuery);
 
 /* ARTISTS */
-async function getAvailableGenreSeeds(accessToken: string) {
+async function getAvailableGenreSeeds(accessToken: string | undefined) {
   try {
+    accessToken = accessToken || (await getSpotifyAuthToken());
     const searchUrl = "https://api.spotify.com/v1/recommendations/available-genre-seeds";
     const genreResponse = await axios.get<{ genres: string[] }>(searchUrl, { headers: standardRequestHeaders(accessToken) });
     const availableGenres = genreResponse.data.genres;
@@ -340,6 +341,8 @@ async function getAvailableGenreSeeds(accessToken: string) {
     throw new Error(`[getRandomGenre] Unable to get available genre seeds - ${error}`);
   }
 }
+
+exports.getAvailableGenreSeeds = functions.https.onCall(getAvailableGenreSeeds);
 
 export async function getRandomArtistsFromSameGenre(numArtists: number, genreName?: string) {
   try {
@@ -390,7 +393,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
   }
 }
 
-export async function getArtist(artistId: string, accessToken: string | undefined) {
+async function getArtist({ artistId, accessToken }: { artistId: string; accessToken: string }) {
   try {
     accessToken = accessToken || (await getSpotifyAuthToken());
 
@@ -401,10 +404,12 @@ export async function getArtist(artistId: string, accessToken: string | undefine
     // flatten batched responses
     return artistResponse.data;
   } catch (error) {
-    console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
+    console.log(`[getArtist] ${error}`);
+    throw new Error(`[getArtist] ${error}`);
   }
 }
+
+exports.getArtist = functions.https.onCall(getArtist);
 
 export async function getMultipleArtists(artistsIds: string[], accessToken: string) {
   try {
@@ -429,8 +434,8 @@ export async function getMultipleArtists(artistsIds: string[], accessToken: stri
     batchedArtistsResponses.forEach((response) => artists.push(...response.data.artists));
     return artists;
   } catch (error) {
-    console.log(`[getMultipleArtistsFromSpotify] ${error}`);
-    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
+    console.log(`[getMultipleArtists] ${error}`);
+    throw new Error(`[getMultipleArtists] ${error}`);
   }
 }
 
