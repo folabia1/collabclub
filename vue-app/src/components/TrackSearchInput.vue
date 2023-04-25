@@ -65,10 +65,11 @@ const handleInputChange = (e: Event) => {
   input {
     background-color: rgba(255, 255, 255, 0.8);
 
-    border-radius: 4px;
+    border-radius: 16px;
     border-width: 2px;
     border-color: var(--button-primary);
-    padding: 0.2rem;
+    color: #242625;
+    padding: 0.4rem;
     font-size: 1.2rem;
   }
 }

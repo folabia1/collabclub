@@ -52,7 +52,7 @@ onMounted(async () => {
           Race against the clock in this fun time challenge! See how well you know artist features - you'll be given two
           artists and you need to construct a path between them using features!
         </p>
-        <button @click="store.goToScreen('time-challenge')">Play</button>
+        <button class="btn-primary" @click="store.goToScreen('time-challenge')">Play</button>
       </div>
 
       <div class="card multiplayer">
@@ -64,7 +64,7 @@ onMounted(async () => {
           Race against the clock in this fun time challenge! See how well you know artist features - you'll be given two
           artists and you need to construct a path between them using features!
         </p>
-        <button>Play</button>
+        <button class="btn-primary" disabled>Play</button>
       </div>
     </div>
   </div>
@@ -155,6 +155,9 @@ onMounted(async () => {
     button {
       font-size: 1.4rem;
       font-weight: 500;
+      &:disabled {
+        cursor: not-allowed;
+      }
     }
   }
 }

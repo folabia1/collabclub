@@ -1,4 +1,6 @@
 import { defineStore } from "pinia";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase-config";
 
 export type Artist = {
   id: string;
@@ -21,6 +23,11 @@ export type PathTrack = {
   artistNames: string[];
 };
 
+const getRandomStartingArtists = httpsCallable<
+  { genreName: string | null | undefined },
+  { genre: string; artists: Artist[] }
+>(functions, "Spotify-getRandomStartingArtists");
+
 export const useAppStore = defineStore("app", {
   // initial state
   state: () => ({
@@ -38,7 +45,9 @@ export const useAppStore = defineStore("app", {
     finalArtist: null as Artist | null,
     hasMadeAttempt: false,
     isLoadingResults: false,
+    isLoadingNewArtists: false,
     suggestedTracks: [] as Track[],
+    hadErrorFetchingResults: false,
   }),
 
   // computed values
@@ -48,10 +57,19 @@ export const useAppStore = defineStore("app", {
       Object.entries(state.genres)
         .filter(([_, isSelected]) => isSelected)
         .map(([name, _]) => name),
+    initialPathArtist: (state) => state.pathArtists[0],
     currentPathArtist: (state) => {
       if (state.pathArtists.length === 0) return null;
       return state.pathArtists[state.pathArtists.length - 1];
     },
+    resultsMessage: (state) =>
+      state.isLoadingResults
+        ? "Loading..."
+        : state.suggestedTracks.length === 0 && state.hasMadeAttempt
+        ? "No results."
+        : state.hadErrorFetchingResults
+        ? "Error fetching results. Try again."
+        : null,
   },
 
   // actions
@@ -95,6 +113,24 @@ export const useAppStore = defineStore("app", {
     setFinalArtist(artist: Artist) {
       this.finalArtist = artist;
     },
+    setIsLoadingNewArtists(value: boolean) {
+      this.isLoadingNewArtists = value;
+    },
+    async refreshArtists() {
+      this.setRandomCurrentGameGenreFromSelected();
+      try {
+        const artistsResponse = await getRandomStartingArtists({ genreName: this.currentGameGenre });
+        this.resetPathArtistsToEmpty();
+        this.setHasMadeAttempt(false);
+        this.pushPathArtist(artistsResponse.data.artists[0]);
+        this.setFinalArtist(artistsResponse.data.artists[1]);
+        this.setCurrentGameGenre(artistsResponse.data.genre);
+        this.setIsLoadingNewArtists(false);
+      } catch (error) {
+        console.error(error);
+        this.setIsLoadingNewArtists(false);
+      }
+    },
     /* Suggested Tracks */
     setHasMadeAttempt(value: boolean) {
       this.hasMadeAttempt = value;
@@ -104,6 +140,9 @@ export const useAppStore = defineStore("app", {
     },
     setSuggestedTracks(tracks: Track[]) {
       this.suggestedTracks = tracks;
+    },
+    setHadErrorFetchingResults(value: boolean) {
+      this.hadErrorFetchingResults = value;
     },
   },
 

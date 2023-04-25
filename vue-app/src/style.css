@@ -68,7 +68,7 @@ select {
   font: inherit;
 }
 
-button {
+button.btn-primary {
   background-color: var(--background-primary);
   color: var(--text-primary);
   border: none;

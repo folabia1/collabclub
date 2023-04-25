@@ -3,54 +3,37 @@ import GenreChip from "./GenreChip.vue";
 import { Track, Artist, useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
-import { onMounted, ref } from "vue";
 import ArtistImage from "./ArtistImage.vue";
 import TrackSearchInput from "./TrackSearchInput.vue";
+import TimerBar from "./TimerBar.vue";
+import { onMounted } from "vue";
 
 // network requests
-const getRandomStartingArtists = httpsCallable<
-  { genreName: string | null | undefined },
-  { genre: string; artists: Artist[] }
->(functions, "Spotify-getRandomStartingArtists");
+const getArtistWithPhotoUrl = httpsCallable<{ artistId: string | undefined }, Artist>(
+  functions,
+  "Spotify-getArtistWithPhotoUrl"
+);
 
 // component & app state
 const store = useAppStore();
 
-const isLoading = ref(false);
-
 // component functions
-const refreshArtists = async () => {
-  isLoading.value = true;
-  store.setRandomCurrentGameGenreFromSelected();
+async function handleClickArtist(artist: Artist, track: Track) {
   try {
-    const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
-    store.resetPathArtistsToEmpty();
-    store.setHasMadeAttempt(false);
-    store.pushPathArtist(artistsResponse.data.artists[0]);
-    store.setFinalArtist(artistsResponse.data.artists[1]);
-    store.setCurrentGameGenre(artistsResponse.data.genre);
-    isLoading.value = false;
-  } catch (error) {
-    console.error(error);
-    isLoading.value = false;
-  }
-};
-
-const handleClickArtist = (artist: Artist, track: Track) => {
-  store.pushPathArtist({
-    ...artist,
-    track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
-  });
-  store.setSuggestedTracks([]);
-};
+    const fullArtist = (await getArtistWithPhotoUrl({ artistId: artist.id })).data;
+    store.pushPathArtist({
+      name: fullArtist.name,
+      id: fullArtist.id,
+      photoUrl: fullArtist.photoUrl,
+      track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
+    });
+    store.setSuggestedTracks([]);
+  } catch {}
+}
 
 // lifecycle hooks
-onMounted(() => {
-  if (!store.selectedGenres.length) {
-    store.selectDefaultGenres();
-  }
-  refreshArtists();
-});
+onMounted(() => store.refreshArtists());
+// TODO: add a check for whether the last artist on the left side is the same as the artist on the right side
 </script>
 
 <template>
@@ -80,25 +63,34 @@ onMounted(() => {
           <p>{{ store.currentPathArtist.name }}</p>
           <p>{{ store.finalArtist.name }}</p>
         </div>
+
+        <TimerBar />
       </div>
 
       <div class="results">
-        <span v-if="store.isLoadingResults">Loading...</span>
-        <span v-if="store.suggestedTracks.length === 0 && !store.isLoadingResults && store.hasMadeAttempt"
-          >No results</span
-        >
+        <span v-if="store.resultsMessage">{{ store.resultsMessage }}</span>
         <div v-for="track in store.suggestedTracks">
           <p>{{ track.name }}</p>
-          <template v-for="artist in track.artists">
-            <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
-            <button v-else @click="() => handleClickArtist(artist, track)">{{ artist.name }}</button>
-          </template>
+          <div class="track-artists">
+            <template v-for="artist in track.artists">
+              <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
+              <button class="select-artist" v-else @click="() => handleClickArtist(artist, track)">
+                {{ artist.name }}
+              </button>
+            </template>
+          </div>
         </div>
       </div>
 
       <div class="search-area">
-        <button class="refresh-artists-btn" @click="refreshArtists" :disabled="isLoading">Refresh Artists</button>
-        <TrackSearchInput v-if="store?.currentPathArtist?.name" :disabled="isLoading" />
+        <button
+          class="refresh-artists-btn btn-primary"
+          @click="store.refreshArtists"
+          :disabled="store.isLoadingNewArtists"
+        >
+          Refresh Artists
+        </button>
+        <TrackSearchInput v-if="store?.currentPathArtist?.name" :disabled="store.isLoadingNewArtists" />
       </div>
     </div>
   </div>
@@ -155,6 +147,14 @@ onMounted(() => {
 .results {
   flex-grow: 1;
   flex-shrink: 1;
+  height: 0;
+  overflow-y: auto;
+
+  .track-artists {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
 }
 
 .search-area {
@@ -164,6 +164,10 @@ onMounted(() => {
   .refresh-artists-btn {
     align-self: flex-end;
     padding: 0.8rem;
+    @media (prefers-color-scheme: dark) {
+      background-color: var(--text-primary);
+      color: var(--background-primary);
+    }
   }
 }
 </style>

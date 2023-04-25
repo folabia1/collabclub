@@ -14,5 +14,6 @@ img {
   height: 24vw;
   border-radius: 8px;
   object-fit: cover;
+  box-shadow: -4px 2px 7px rgba(0, 0, 0, 0.4);
 }
 </style>

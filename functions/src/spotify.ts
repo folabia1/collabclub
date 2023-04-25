@@ -160,7 +160,7 @@ async function getAllTracksByAnArtist(artistId: string, accessToken: string) {
 type searchDiscographyArgs = {
   trackName?: string;
   artistId: string;
-  requireMulipleArtists: boolean;
+  requireMultipleArtists: boolean;
   requireThisArtist: boolean;
   strictMode: boolean;
 };
@@ -175,7 +175,7 @@ type searchDiscographyArgs = {
 async function searchForTracksInArtistDiscography({
   trackName,
   artistId,
-  requireMulipleArtists,
+  requireMultipleArtists,
   requireThisArtist,
   strictMode,
 }: searchDiscographyArgs) {
@@ -188,7 +188,7 @@ async function searchForTracksInArtistDiscography({
     // apply filters
     const filteredTracks = tracksResponse.filter((track) => {
       return (
-        (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+        (!requireMultipleArtists || track.artists.length > 1) && // multiple artists
         (!requireThisArtist || track.artists.some((artist) => artist.id === artistId)) && // correct artist
         (!trackName || isTrackNameSimilar(trackName, track.name, strictMode)) // name matches trackNameQuery
       );
@@ -221,7 +221,7 @@ type getFeaturesArgs = { artistId1: string; artistId2: string; strictMode: boole
 async function getFeaturesBetweenTwoArtists({ artistId1, artistId2, strictMode }: getFeaturesArgs) {
   const tracksResponse = await searchForTracksInArtistDiscography({
     artistId: artistId1,
-    requireMulipleArtists: true,
+    requireMultipleArtists: true,
     requireThisArtist: true,
     strictMode: strictMode,
   });
@@ -237,7 +237,7 @@ exports.getFeaturesBetweenTwoArtists = functions.https.onCall(getFeaturesBetween
 type SearchArgs = {
   trackName: string;
   artistName?: string;
-  requireMulipleArtists: boolean;
+  requireMultipleArtists: boolean;
   requireThisArtist: boolean;
   requireSimilarName: boolean;
   limit?: number;
@@ -254,7 +254,7 @@ type SearchArgs = {
 async function searchForTracksWithQuery({
   trackName,
   artistName,
-  requireMulipleArtists,
+  requireMultipleArtists,
   requireThisArtist,
   requireSimilarName,
   limit = 50,
@@ -307,11 +307,11 @@ async function searchForTracksWithQuery({
     // apply filters
     // filter to only keep tracks with multiple artists including this artist
     // also filtering out tracks that don't have the same title as data.trackName
-    const hasFilters = requireMulipleArtists || requireThisArtist || requireSimilarName;
+    const hasFilters = requireMultipleArtists || requireThisArtist || requireSimilarName;
     const filteredTracks = hasFilters
       ? tracks.filter((track) => {
           return (
-            (!requireMulipleArtists || track.artists.length > 1) && // multiple artists
+            (!requireMultipleArtists || track.artists.length > 1) && // multiple artists
             (!requireThisArtist || track.artists.some((artist) => artist.name === artistName)) && // correct artist
             (!requireSimilarName || isTrackNameSimilar(trackName, track.name, strictMode)) // name is right (or almost right)
           );
@@ -393,7 +393,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
   }
 }
 
-async function getArtist({ artistId, accessToken }: { artistId: string; accessToken: string }) {
+async function getArtistWithPhotoUrl({ artistId, accessToken }: { artistId: string; accessToken: string }) {
   try {
     accessToken = accessToken || (await getSpotifyAuthToken());
 
@@ -401,15 +401,19 @@ async function getArtist({ artistId, accessToken }: { artistId: string; accessTo
     const artistResponse = await axios.get<Artist>(searchUrl, {
       headers: standardRequestHeaders(accessToken),
     });
-    // flatten batched responses
-    return artistResponse.data;
+
+    // make the photoUrl available as a top level property
+    const artist = artistResponse.data;
+    artist.photoUrl = artist.images?.[artist.images.length - 1]?.url ?? "";
+
+    return artist;
   } catch (error) {
-    console.log(`[getArtist] ${error}`);
-    throw new Error(`[getArtist] ${error}`);
+    console.log(`[getArtistWithPhotoUrl] ${error}`);
+    throw new Error(`[getArtistWithPhotoUrl] ${error}`);
   }
 }
 
-exports.getArtist = functions.https.onCall(getArtist);
+exports.getArtistWithPhotoUrl = functions.https.onCall(getArtistWithPhotoUrl);
 
 export async function getMultipleArtists(artistsIds: string[], accessToken: string) {
   try {

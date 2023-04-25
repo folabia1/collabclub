@@ -11,7 +11,7 @@ function handleClickHome() {
 
 <template>
   <div class="title-bar">
-    <div class="menu-button">Menu</div>
+    <button class="menu-button btn-primary">Menu</button>
     <h1 class="title" @click="handleClickHome">Collab Club</h1>
     <div class="spacer" />
     <div class="shadow" />
