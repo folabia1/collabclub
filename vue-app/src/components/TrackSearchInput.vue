@@ -2,7 +2,6 @@
 import { Track, useAppStore } from "../pinia/store";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase-config";
-import { ref } from "vue";
 
 defineProps<{ disabled: boolean }>();
 
@@ -36,7 +35,6 @@ async function suggestTracks(trackGuess: string) {
 }
 
 const store = useAppStore();
-let isLoadingResults = ref(false);
 
 const handleInputChange = (e: Event) => {
   if (!(e.target instanceof HTMLInputElement)) return;
@@ -56,7 +54,6 @@ const handleInputChange = (e: Event) => {
       </p>
     </div>
     <input type="search" placeholder="Track name..." @change="(e) => handleInputChange(e)" :disabled="disabled" />
-    <span v-if="isLoadingResults">Loading...</span>
   </div>
 </template>
 

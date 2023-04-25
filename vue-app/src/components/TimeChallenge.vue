@@ -26,6 +26,7 @@ const refreshArtists = async () => {
   try {
     const artistsResponse = await getRandomStartingArtists({ genreName: store.currentGameGenre });
     store.resetPathArtistsToEmpty();
+    store.setHasMadeAttempt(false);
     store.pushPathArtist(artistsResponse.data.artists[0]);
     store.setFinalArtist(artistsResponse.data.artists[1]);
     store.setCurrentGameGenre(artistsResponse.data.genre);
@@ -83,6 +84,7 @@ onMounted(() => {
       </div>
 
       <div class="results">
+        <span v-if="store.isLoadingResults">Loading...</span>
         <span v-if="suggestedTracks.length === 0 && !store.isLoadingResults && store.hasMadeAttempt">No results</span>
         <div v-for="track in suggestedTracks">
           <p>{{ track.name }}</p>
@@ -120,6 +122,7 @@ onMounted(() => {
   flex-direction: column;
   justify-content: space-between;
   flex-grow: 1;
+  gap: 1.2rem;
 }
 
 .artists {
@@ -139,6 +142,10 @@ onMounted(() => {
     font-weight: 500;
     gap: 2rem;
   }
+}
+
+.results {
+  flex-grow: 1;
 }
 
 .search-area {
