@@ -285,7 +285,7 @@ async function searchForTracksWithQuery({
       batchRequests.push(
         axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
           params: {
-            q: `${trackName.replace(/\s/g, "")}` + `${artistName ? `%20artist:${artistName.replace(/\s/g, "")}` : ""}`,
+            q: `${trackName.replace(/\s/g, "")}` + `${artistName ? `%20${artistName.replace(/\s/g, "")}` : ""}`,
             type: "track",
             offset: `${(i + 1) * 50}`,
             limit: "50",
@@ -319,7 +319,7 @@ async function searchForTracksWithQuery({
       : tracks;
     console.log(`[searchForTracksWithQuery] ${tracks.length} tracks found and filtered to ${filteredTracks.length}`);
 
-    return tracks;
+    return filteredTracks;
   } catch (error) {
     console.log(`[searchForTracksWithQuery] Unable to retrieve songs from Spotify: ${error}`);
     throw new Error(`[searchForTracksWithQuery] Unable to retrieve songs from Spotify: ${error}`);
@@ -358,7 +358,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
             q: `genre:${selectedGenre}`,
             type: "artist",
             limit: 1,
-            offset: Math.floor(Math.random() * 300),
+            offset: Math.floor(Math.random() * 50),
           },
           headers: standardRequestHeaders(accessToken),
         })
@@ -375,7 +375,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
     const artistIds = randomArtistsFromGenre.map((artist) => artist.id);
 
     // make a request for the artists to get the photoUrl
-    const fullRandomArtists = await getMultipleArtistsFromSpotifyById(artistIds, accessToken);
+    const fullRandomArtists = await getMultipleArtists(artistIds, accessToken);
 
     // add the photoUrl information to the tracks
     fullRandomArtists.forEach((artist, index) => {
@@ -390,7 +390,23 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
   }
 }
 
-export async function getMultipleArtistsFromSpotifyById(artistsIds: string[], accessToken: string) {
+export async function getArtist(artistId: string, accessToken: string | undefined) {
+  try {
+    accessToken = accessToken || (await getSpotifyAuthToken());
+
+    const searchUrl = `https://api.spotify.com/v1/artists/${artistId}`;
+    const artistResponse = await axios.get<Artist>(searchUrl, {
+      headers: standardRequestHeaders(accessToken),
+    });
+    // flatten batched responses
+    return artistResponse.data;
+  } catch (error) {
+    console.log(`[getMultipleArtistsFromSpotify] ${error}`);
+    throw new Error(`[getMultipleArtistsFromSpotify] ${error}`);
+  }
+}
+
+export async function getMultipleArtists(artistsIds: string[], accessToken: string) {
   try {
     const responses = [];
     // endpoint only returns 50 artists at a time so

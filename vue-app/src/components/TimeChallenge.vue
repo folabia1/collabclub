@@ -17,7 +17,6 @@ const getRandomStartingArtists = httpsCallable<
 const store = useAppStore();
 
 const isLoading = ref(false);
-let suggestedTracks = ref([] as Track[]);
 
 // component functions
 const refreshArtists = async () => {
@@ -85,8 +84,10 @@ onMounted(() => {
 
       <div class="results">
         <span v-if="store.isLoadingResults">Loading...</span>
-        <span v-if="suggestedTracks.length === 0 && !store.isLoadingResults && store.hasMadeAttempt">No results</span>
-        <div v-for="track in suggestedTracks">
+        <span v-if="store.suggestedTracks.length === 0 && !store.isLoadingResults && store.hasMadeAttempt"
+          >No results</span
+        >
+        <div v-for="track in store.suggestedTracks">
           <p>{{ track.name }}</p>
           <template v-for="artist in track.artists">
             <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
@@ -134,6 +135,13 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     gap: 0.4rem;
+
+    .artists-stack {
+      display: flex;
+      > :not(:first-child) {
+        margin-left: -18vw;
+      }
+    }
   }
 
   .artist-names {
@@ -146,6 +154,7 @@ onMounted(() => {
 
 .results {
   flex-grow: 1;
+  flex-shrink: 1;
 }
 
 .search-area {

@@ -7,28 +7,27 @@ defineProps<{ disabled: boolean }>();
 
 type SearchQuery = {
   trackName: string;
-  artistId: string;
+  artistName: string;
   requireMultipleArtists: boolean;
   requireThisArtist: boolean;
+  requireSimilarName: boolean;
   strictMode: boolean;
 };
-const searchForTracksInArtistDiscography = httpsCallable<SearchQuery, Track[]>(
-  functions,
-  "Spotify-searchForTracksInArtistDiscography"
-);
+const searchForTracksWithQuery = httpsCallable<SearchQuery, Track[]>(functions, "Spotify-searchForTracksWithQuery");
 async function suggestTracks(trackGuess: string) {
   store.setIsLoadingResults(true);
   store.setHasMadeAttempt(true);
   try {
-    const tracksResponse = await searchForTracksInArtistDiscography({
+    const tracksResponse = await searchForTracksWithQuery({
       trackName: trackGuess,
-      artistId: store.currentPathArtist?.id ?? "",
+      artistName: store.currentPathArtist?.name ?? "",
       requireMultipleArtists: true,
       requireThisArtist: true,
+      requireSimilarName: true,
       strictMode: false,
     });
     // display tracks for user to choose from
-    store.setSuggestedTracks([...tracksResponse.data]);
+    store.setSuggestedTracks(tracksResponse.data);
   } finally {
     store.setIsLoadingResults(false);
   }

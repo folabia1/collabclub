@@ -24,7 +24,7 @@ module.exports = {
   rules: {
     "quotes": "off",
     "import/no-unresolved": 0,
-    "indent": ["error", 2],
+    "indent": "off",
     "max-len": "off",
     "require-jsdoc": "off",
     "@typescript-eslint/no-unused-vars": "off",
