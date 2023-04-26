@@ -121,10 +121,6 @@ export const useAppStore = defineStore("app", {
       this.currentGameGenre = this.selectedGenres[Math.floor(Math.random() * this.selectedGenres.length)];
     },
     /* Artists */
-    resetPathArtistsToEmpty() {
-      this.pathArtists = [];
-      this.finalArtist = null;
-    },
     pushPathArtist(artist: PathArtist) {
       this.pathArtists.push(artist);
     },
@@ -142,7 +138,9 @@ export const useAppStore = defineStore("app", {
       this.setIsLoadingNewArtists(true);
       try {
         const artistsResponse = await getRandomStartingArtists({ genreName: this.currentGameGenre });
-        this.resetPathArtistsToEmpty();
+        this.pathArtists = [];
+        this.finalArtist = null;
+        this.suggestedTracks = [];
         this.setHasMadeAttempt(false);
         this.pushPathArtist(artistsResponse.data.artists[0]);
         this.setFinalArtist(artistsResponse.data.artists[1]);
