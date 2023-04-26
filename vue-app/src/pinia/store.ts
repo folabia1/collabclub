@@ -93,6 +93,7 @@ export const useAppStore = defineStore("app", {
     /* Screen */
     goToScreen(gameMode: string) {
       this.screen = gameMode;
+      this.resetGame();
     },
     /* Genres */
     setAvailableGenres(avilableGenres: string[]) {
@@ -198,6 +199,19 @@ export const useAppStore = defineStore("app", {
     // Game Over
     setIsGameOver(value: boolean) {
       this.isGameOver = value;
+    },
+    resetGame() {
+      // leave genres the same
+      this.currentGameGenre = null;
+      this.pathArtists = [];
+      this.finalArtist = null;
+      this.hasMadeAttempt = false;
+      this.isLoadingResults = false;
+      this.isLoadingNewArtists = false;
+      this.suggestedTracks = [];
+      this.hadErrorFetchingResults = false;
+      this.isGameOver = false;
+      this.streak = 0;
     },
   },
 

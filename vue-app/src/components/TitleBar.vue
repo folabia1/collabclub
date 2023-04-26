@@ -2,17 +2,12 @@
 import { useAppStore } from "../pinia/store";
 
 const store = useAppStore();
-
-function handleClickHome() {
-  store.goToScreen("home");
-  store.resetPathArtistsToEmpty();
-}
 </script>
 
 <template>
   <div class="title-bar">
     <button class="menu-button btn-primary">Menu</button>
-    <h1 class="title" @click="handleClickHome">Collab Club</h1>
+    <h1 class="title" @click="store.goToScreen('home')">Collab Club</h1>
     <div class="spacer" />
     <div class="shadow" />
   </div>
