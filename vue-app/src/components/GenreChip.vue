@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { useAppStore } from "../pinia/store";
-
 const props = defineProps<{ text: string; active: boolean; disabled: boolean }>();
-
 const store = useAppStore();
-const toggleSelected = () => store.toggleGenreSelected(props.text);
 </script>
 
 <template>
-  <button :class="`genre-chip${active ? ' active' : ''}`" :disabled="disabled" @click="toggleSelected">
+  <button
+    :class="`genre-chip${active ? ' active' : ''}`"
+    :disabled="disabled"
+    @click="() => store.toggleGenreSelected(props.text)"
+  >
     {{ text }}
   </button>
 </template>
@@ -28,9 +29,8 @@ button.genre-chip {
   &:disabled {
     border-color: var(--disabled);
     background-color: transparent;
-    &.active {
-      border-color: var(--disabled);
-      background-color: var(--disabled);
+    @media (prefers-color-scheme: dark) {
+      color: var(--disabled);
     }
   }
 
@@ -40,6 +40,11 @@ button.genre-chip {
     @media (prefers-color-scheme: dark) {
       color: var(--background-primary);
     }
+  }
+
+  &:disabled.active {
+    border-color: var(--disabled);
+    background-color: var(--disabled);
   }
 }
 </style>

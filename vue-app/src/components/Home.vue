@@ -6,19 +6,16 @@ import { connectFirestoreEmulator } from "firebase/firestore";
 import { connectFunctionsEmulator, httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase-config";
 
-// network requests
 const getAvailableGenreSeeds = httpsCallable<undefined, string[]>(functions, "Spotify-getAvailableGenreSeeds");
-
-// component & app state
 const store = useAppStore();
 
-// lifecycle hooks
 onMounted(async () => {
   connectFirestoreEmulator(db, "localhost", 8080);
   connectFunctionsEmulator(functions, "localhost", 5001);
   try {
     const availableGenres = await getAvailableGenreSeeds();
     store.setAvailableGenres(availableGenres.data);
+    store.toggleAllGenresSelected(false);
   } catch {}
 });
 </script>
@@ -30,11 +27,7 @@ onMounted(async () => {
       <div class="genre-chips">
         <!-- TODO: move this to a computed property in the script -->
         <GenreChip
-          v-for="[genreName, isSelected] in Object.entries(store.genres).sort((genreA, genreB) => {
-            if (store.genres[genreA[0]] && !store.genres[genreB[0]]) return -1;
-            else if (!store.genres[genreA[0]] && store.genres[genreB[0]]) return 1;
-            else return 0;
-          })"
+          v-for="[genreName, isSelected] in store.sortedGenresArray"
           :text="genreName"
           :active="isSelected"
           :disabled="false"
@@ -61,10 +54,10 @@ onMounted(async () => {
           <h2 class="card__title-text">Multi-player</h2>
         </div>
         <p>
-          Race against the clock in this fun time challenge! See how well you know artist features - you'll be given two
-          artists and you need to construct a path between them using features!
+          Grab your friends and play together to get as many points as possible, or compete to see who has the best
+          music knowledge.
         </p>
-        <button class="btn-primary" disabled>Play</button>
+        <button class="btn-primary" disabled>Coming Soon</button>
       </div>
     </div>
   </div>

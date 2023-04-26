@@ -22,7 +22,7 @@ export function MultiPlayer() {
   // Mounting Component
   useEffect(() => {
     setRole(); // set user's role as player or spectator
-    refreshArtists(); // get artists for room
+    refreshArtists(false); // get artists for room
     return () => leaveRoom({ roomName: roomParams }); // handle leaving room on firestore
   }, []);
 

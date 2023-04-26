@@ -28,17 +28,25 @@ const getRandomStartingArtists = httpsCallable<
   { genre: string; artists: Artist[] }
 >(functions, "Spotify-getRandomStartingArtists");
 
+const getArtistWithPhotoUrl = httpsCallable<{ artistId: string | undefined }, Artist>(
+  functions,
+  "Spotify-getArtistWithPhotoUrl"
+);
+
+type SearchQuery = {
+  trackName: string;
+  artistName: string;
+  requireMultipleArtists: boolean;
+  requireThisArtist: boolean;
+  requireSimilarName: boolean;
+  strictMode: boolean;
+};
+const searchForTracksWithQuery = httpsCallable<SearchQuery, Track[]>(functions, "Spotify-searchForTracksWithQuery");
+
 export const useAppStore = defineStore("app", {
   // initial state
   state: () => ({
-    genres: {
-      "hip-hop": true,
-      "afro-beats": false,
-      "uk rap": false,
-      "charts": false,
-      "latinx": false,
-      "old-school hip-hop": false,
-    } as { [index: string]: boolean },
+    genres: {} as { [index: string]: boolean },
     currentGameGenre: null as string | null,
     screen: "home",
     pathArtists: [] as PathArtist[],
@@ -48,10 +56,18 @@ export const useAppStore = defineStore("app", {
     isLoadingNewArtists: false,
     suggestedTracks: [] as Track[],
     hadErrorFetchingResults: false,
+    isGameOver: false,
+    streak: 0,
   }),
 
   // computed values
   getters: {
+    sortedGenresArray: (state) =>
+      Object.entries(state.genres).sort((genreA, genreB) => {
+        if (state.genres[genreA[0]] && !state.genres[genreB[0]]) return -1;
+        else if (!state.genres[genreA[0]] && state.genres[genreB[0]]) return 1;
+        else return 0;
+      }),
     genreNames: (state) => Object.keys(state.genres),
     selectedGenres: (state) =>
       Object.entries(state.genres)
@@ -87,10 +103,10 @@ export const useAppStore = defineStore("app", {
     toggleGenreSelected(genreName: string) {
       this.genres[genreName] = !this.genres[genreName];
     },
-    selectDefaultGenres() {
-      this.genreNames.slice(0, 3).forEach((genreName) => {
-        this.genres[genreName] = true;
-      });
+    toggleAllGenresSelected(value?: boolean) {
+      this.genreNames.forEach(
+        (genreName) => (this.genres[genreName] = value === true || value === false ? value : this.genres[genreName])
+      );
     },
     setCurrentGameGenre(genreName: string) {
       this.genres[genreName] = true;
@@ -100,6 +116,7 @@ export const useAppStore = defineStore("app", {
       this.currentGameGenre = null;
     },
     setRandomCurrentGameGenreFromSelected() {
+      if (!this.selectedGenres.length) this.toggleAllGenresSelected(true);
       this.currentGameGenre = this.selectedGenres[Math.floor(Math.random() * this.selectedGenres.length)];
     },
     /* Artists */
@@ -116,20 +133,36 @@ export const useAppStore = defineStore("app", {
     setIsLoadingNewArtists(value: boolean) {
       this.isLoadingNewArtists = value;
     },
-    async refreshArtists() {
+    async refreshArtists(correctAnswer: boolean) {
+      if (correctAnswer) this.streak++;
+      else this.streak = 0;
+
       this.setRandomCurrentGameGenreFromSelected();
+      this.setIsLoadingNewArtists(true);
       try {
         const artistsResponse = await getRandomStartingArtists({ genreName: this.currentGameGenre });
         this.resetPathArtistsToEmpty();
         this.setHasMadeAttempt(false);
         this.pushPathArtist(artistsResponse.data.artists[0]);
         this.setFinalArtist(artistsResponse.data.artists[1]);
-        this.setCurrentGameGenre(artistsResponse.data.genre);
         this.setIsLoadingNewArtists(false);
       } catch (error) {
         console.error(error);
         this.setIsLoadingNewArtists(false);
       }
+    },
+    async handleUserSelectsArtist(artist: Artist, track: Track) {
+      try {
+        const fullArtist = (await getArtistWithPhotoUrl({ artistId: artist.id })).data;
+        this.pushPathArtist({
+          name: fullArtist.name,
+          id: fullArtist.id,
+          photoUrl: fullArtist.photoUrl,
+          track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
+        });
+        this.setSuggestedTracks([]);
+        this.streak++;
+      } catch {}
     },
     /* Suggested Tracks */
     setHasMadeAttempt(value: boolean) {
@@ -143,6 +176,28 @@ export const useAppStore = defineStore("app", {
     },
     setHadErrorFetchingResults(value: boolean) {
       this.hadErrorFetchingResults = value;
+    },
+    async suggestTracks(trackGuess: string) {
+      this.setIsLoadingResults(true);
+      this.setHasMadeAttempt(true);
+      try {
+        const tracksResponse = await searchForTracksWithQuery({
+          trackName: trackGuess,
+          artistName: this.currentPathArtist?.name ?? "",
+          requireMultipleArtists: true,
+          requireThisArtist: true,
+          requireSimilarName: true,
+          strictMode: false,
+        });
+        // display tracks for user to choose from
+        this.setSuggestedTracks(tracksResponse.data);
+      } finally {
+        this.setIsLoadingResults(false);
+      }
+    },
+    // Game Over
+    setIsGameOver(value: boolean) {
+      this.isGameOver = value;
     },
   },
 

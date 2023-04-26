@@ -1,32 +1,28 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useAppStore } from "../pinia/store";
 import { storeToRefs } from "pinia";
 
 const store = useAppStore();
-const { initialPathArtist, finalArtist } = storeToRefs(store);
-
-// setup a watcher function for when the initial pathArtist or finalPathArtist changes
-// should reset the timeout (and the animation) on artist change
+const { streak } = storeToRefs(store);
 let timeoutId = ref<NodeJS.Timer>();
 let timerBarRef = ref<HTMLElement | null>(null);
-const didTriggerArtistRefresh = ref(false);
-watch([initialPathArtist, finalArtist], () => {
-  clearTimeout(timeoutId.value);
-  timeoutId.value = setTimeout(() => {
-    didTriggerArtistRefresh.value = true;
-    store.refreshArtists();
-  }, 30000);
 
-  if (timerBarRef.value) {
-    timerBarRef.value.classList.remove("start");
-    setTimeout(() => timerBarRef.value?.classList.add("start"), 100);
-  }
+onMounted(() => {
+  if (timerBarRef.value) timerBarRef.value.classList.add("start");
+  timeoutId.value = setTimeout(() => store.setIsGameOver(true), 10000);
 });
 
-// onMounted(() => {
-//   timeout.value = setTimeout(() => store.refreshArtists(), 3000);
-// });
+watch(streak, (currentStreak, prevStreak) => {
+  if (currentStreak > prevStreak) {
+    clearTimeout(timeoutId.value);
+    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 10000);
+  }
+
+  if (timerBarRef.value) timerBarRef.value.classList.remove("start");
+  // add tiny delay between removing and addnig back the class to ensure animation is triggered
+  setTimeout(() => (timerBarRef.value ? timerBarRef.value.classList.add("start") : null), 100);
+});
 
 onBeforeUnmount(() => clearTimeout(timeoutId.value));
 </script>
@@ -37,14 +33,14 @@ onBeforeUnmount(() => clearTimeout(timeoutId.value));
 
 <style lang="scss" scoped>
 .timer-bar {
-  background-color: green;
+  background-color: var(--accent);
   width: 100%;
   padding-block: 0.4rem;
   border-radius: 12px;
 
   &.start {
     animation-name: countdown;
-    animation-duration: 30s;
+    animation-duration: 0s;
     animation-fill-mode: normal;
     animation-delay: 0ms;
   }
@@ -52,7 +48,7 @@ onBeforeUnmount(() => clearTimeout(timeoutId.value));
 
 @keyframes countdown {
   from {
-    background-color: green;
+    background-color: var(--accent);
     width: 100%;
   }
   50% {

@@ -1,46 +1,19 @@
 <script setup lang="ts">
-import { Track, useAppStore } from "../pinia/store";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../firebase-config";
+import { useAppStore } from "../pinia/store";
+import { ref } from "vue";
 
 defineProps<{ disabled: boolean }>();
-
-type SearchQuery = {
-  trackName: string;
-  artistName: string;
-  requireMultipleArtists: boolean;
-  requireThisArtist: boolean;
-  requireSimilarName: boolean;
-  strictMode: boolean;
-};
-const searchForTracksWithQuery = httpsCallable<SearchQuery, Track[]>(functions, "Spotify-searchForTracksWithQuery");
-async function suggestTracks(trackGuess: string) {
-  store.setIsLoadingResults(true);
-  store.setHasMadeAttempt(true);
-  try {
-    const tracksResponse = await searchForTracksWithQuery({
-      trackName: trackGuess,
-      artistName: store.currentPathArtist?.name ?? "",
-      requireMultipleArtists: true,
-      requireThisArtist: true,
-      requireSimilarName: true,
-      strictMode: false,
-    });
-    // display tracks for user to choose from
-    store.setSuggestedTracks(tracksResponse.data);
-  } finally {
-    store.setIsLoadingResults(false);
-  }
-}
-
+// store and component state
 const store = useAppStore();
+const inputRef = ref<HTMLInputElement>();
 
-const handleInputChange = (e: Event) => {
-  if (!(e.target instanceof HTMLInputElement)) return;
-  const trackGuess = e.target.value;
+// component functions
+
+const handleSubmit = () => {
+  const trackGuess = inputRef.value?.value;
   if (!trackGuess) return;
 
-  suggestTracks(trackGuess);
+  store.suggestTracks(trackGuess);
 };
 </script>
 
@@ -52,7 +25,16 @@ const handleInputChange = (e: Event) => {
         Search for a track with <b>{{ store.currentPathArtist?.name ?? "this artist" }}</b> and another artist.
       </p>
     </div>
-    <input type="search" placeholder="Track name..." @change="(e) => handleInputChange(e)" :disabled="disabled" />
+    <div class="input-area">
+      <input
+        type="search"
+        ref="inputRef"
+        placeholder="Track name..."
+        @keyup="(e) => (e.key === 'Enter' ? handleSubmit() : null)"
+        :disabled="disabled"
+      />
+      <button class="submit-btn btn-primary" @click="handleSubmit()">Search</button>
+    </div>
   </div>
 </template>
 
@@ -62,7 +44,13 @@ const handleInputChange = (e: Event) => {
   flex-direction: column;
   gap: 0.4rem;
 
+  .input-area {
+    display: flex;
+    gap: 0.4rem;
+  }
+
   input {
+    flex-grow: 1;
     background-color: rgba(255, 255, 255, 0.8);
 
     border-radius: 16px;

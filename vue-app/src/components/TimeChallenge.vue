@@ -1,48 +1,31 @@
 <script setup lang="ts">
 import GenreChip from "./GenreChip.vue";
-import { Track, Artist, useAppStore } from "../pinia/store";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../firebase-config";
+import { useAppStore } from "../pinia/store";
 import ArtistImage from "./ArtistImage.vue";
 import TrackSearchInput from "./TrackSearchInput.vue";
 import TimerBar from "./TimerBar.vue";
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
+import { storeToRefs } from "pinia";
+import GameOverModal from "./GameOverModal.vue";
 
-// network requests
-const getArtistWithPhotoUrl = httpsCallable<{ artistId: string | undefined }, Artist>(
-  functions,
-  "Spotify-getArtistWithPhotoUrl"
-);
-
-// component & app state
 const store = useAppStore();
 
-// component functions
-async function handleClickArtist(artist: Artist, track: Track) {
-  try {
-    const fullArtist = (await getArtistWithPhotoUrl({ artistId: artist.id })).data;
-    store.pushPathArtist({
-      name: fullArtist.name,
-      id: fullArtist.id,
-      photoUrl: fullArtist.photoUrl,
-      track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
-    });
-    store.setSuggestedTracks([]);
-  } catch {}
-}
+onMounted(() => store.refreshArtists(false));
+const { currentPathArtist, finalArtist } = storeToRefs(store);
 
-// lifecycle hooks
-onMounted(() => store.refreshArtists());
-// TODO: add a check for whether the last artist on the left side is the same as the artist on the right side
+watch([currentPathArtist, finalArtist], () => {
+  if (currentPathArtist.value?.id === finalArtist.value?.id) store.refreshArtists(true);
+});
 </script>
 
 <template>
   <div class="time-challenge">
     <div class="genre-chips">
+      <GenreChip v-if="store.currentGameGenre" :text="store.currentGameGenre" :active="true" :disabled="true" />
       <GenreChip
-        v-for="selectedGenre in store.selectedGenres"
+        v-for="selectedGenre in store.selectedGenres.filter((genre) => genre !== store.currentGameGenre)"
         :text="selectedGenre"
-        :active="selectedGenre === store.currentGameGenre"
+        :active="false"
         :disabled="true"
       />
     </div>
@@ -74,7 +57,7 @@ onMounted(() => store.refreshArtists());
           <div class="track-artists">
             <template v-for="artist in track.artists">
               <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
-              <button class="select-artist" v-else @click="() => handleClickArtist(artist, track)">
+              <button class="select-artist" v-else @click="() => store.handleUserSelectsArtist(artist, track)">
                 {{ artist.name }}
               </button>
             </template>
@@ -85,7 +68,7 @@ onMounted(() => store.refreshArtists());
       <div class="search-area">
         <button
           class="refresh-artists-btn btn-primary"
-          @click="store.refreshArtists"
+          @click="() => store.refreshArtists(false)"
           :disabled="store.isLoadingNewArtists"
         >
           Refresh Artists
@@ -94,6 +77,7 @@ onMounted(() => store.refreshArtists());
       </div>
     </div>
   </div>
+  <GameOverModal />
 </template>
 
 <style lang="scss" scoped>
@@ -108,6 +92,7 @@ onMounted(() => store.refreshArtists());
 .genre-chips {
   display: flex;
   gap: 0.8rem;
+  overflow-x: auto;
 }
 
 .main {
