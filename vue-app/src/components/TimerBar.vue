@@ -9,14 +9,14 @@ let timeoutId = ref<NodeJS.Timer>();
 let timerBarRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
+  timeoutId.value = setTimeout(() => store.setIsGameOver(true), 60000);
   if (timerBarRef.value) timerBarRef.value.classList.add("start");
-  timeoutId.value = setTimeout(() => store.setIsGameOver(true), 10000);
 });
 
 watch(streak, (currentStreak, prevStreak) => {
   if (currentStreak > prevStreak) {
     clearTimeout(timeoutId.value);
-    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 10000);
+    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 60000);
   }
 
   if (timerBarRef.value) timerBarRef.value.classList.remove("start");
@@ -40,7 +40,7 @@ onBeforeUnmount(() => clearTimeout(timeoutId.value));
 
   &.start {
     animation-name: countdown;
-    animation-duration: 0s;
+    animation-duration: 60s;
     animation-fill-mode: normal;
     animation-delay: 0ms;
   }
