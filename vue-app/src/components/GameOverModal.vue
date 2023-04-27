@@ -6,7 +6,13 @@ const store = useAppStore();
 <template>
   <Teleport v-if="store.isGameOver" to="body">
     <div class="modal-wrapper">
-      <div class="game-over-modal">GAME OVER</div>
+      <div class="game-over-modal">
+        <h2 class="title">Game Over</h2>
+        <div class="buttons">
+          <button class="btn-secondary" @click="store.goToScreen('home')">Go to Home</button>
+          <button class="btn-secondary" @click="store.resetGame()">Play Again</button>
+        </div>
+      </div>
     </div>
   </Teleport>
 </template>
@@ -33,5 +39,10 @@ const store = useAppStore();
   gap: 2rem;
   padding: 3.2rem;
   border-radius: 8px;
+
+  .buttons {
+    display: flex;
+    gap: 0.8rem;
+  }
 }
 </style>
