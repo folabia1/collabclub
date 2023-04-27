@@ -91,6 +91,10 @@ button.btn-primary {
   flex-direction: column;
 }
 
+button {
+  cursor: pointer;
+}
+
 .info {
   color: var(--info);
 }

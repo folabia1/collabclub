@@ -63,7 +63,11 @@ watch([currentPathArtist, finalArtist], () => {
                 "
                 >{{ artist.name }}</span
               >
-              <button class="select-artist" v-else @click="() => store.handleUserSelectsArtist(artist, track)">
+              <button
+                class="select-artist btn-primary"
+                v-else
+                @click="() => store.handleUserSelectsArtist(artist, track)"
+              >
                 {{ artist.name }}
               </button>
             </template>
@@ -148,6 +152,15 @@ watch([currentPathArtist, finalArtist], () => {
     display: flex;
     gap: 0.4rem;
     align-items: center;
+  }
+
+  .select-artist {
+    background-color: var(--secondary);
+    color: #242625;
+    padding: 0rem 0.8rem;
+    &:hover {
+      opacity: 0.9;
+    }
   }
 }
 
