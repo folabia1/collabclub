@@ -6,7 +6,11 @@ const store = useAppStore();
 
 <template>
   <div class="title-bar">
-    <button class="menu-button btn-primary">Menu</button>
+    <button v-if="store.screen === 'time-challenge'" @click="store.goToScreen('home')" class="menu-button btn-primary">
+      <i class="fa fa-chevron-left fa-sm" />
+      <span>Back</span>
+    </button>
+    <div v-else class="spacer" />
     <h1 class="title" @click="store.goToScreen('home')">Collab Club</h1>
     <div class="spacer" />
     <div class="shadow" />
@@ -23,12 +27,19 @@ const store = useAppStore();
 
   .menu-button,
   .spacer {
-    flex: 0 0 3.5rem;
+    flex: 0 0 6rem;
   }
 
   .menu-button {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    padding-left: 2rem;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1.2rem;
+    span {
+      margin-bottom: 1px;
+    }
   }
 
   .title {

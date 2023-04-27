@@ -37,26 +37,30 @@ onMounted(async () => {
 
     <div class="game-modes">
       <div class="card time-challenge">
-        <div class="card__title">
-          <i class="fa fa-bomb" />
-          <h2 class="card__title-text">Time Challenge</h2>
+        <div class="card-text">
+          <div class="card__title">
+            <i class="fa fa-clock" />
+            <h2 class="card__title-text">Time Challenge</h2>
+          </div>
+          <p>
+            Race against the clock in this fun time challenge! See how well you know artist features - you'll be given
+            two artists and you need to construct a path between them using features!
+          </p>
         </div>
-        <p>
-          Race against the clock in this fun time challenge! See how well you know artist features - you'll be given two
-          artists and you need to construct a path between them using features!
-        </p>
         <button class="btn-primary" @click="store.goToScreen('time-challenge')">Play</button>
       </div>
 
       <div class="card multiplayer">
-        <div class="card__title">
-          <i class="fa fa-bomb" />
-          <h2 class="card__title-text">Multi-player</h2>
+        <div class="card-text">
+          <div class="card__title">
+            <i class="fa fa-users" />
+            <h2 class="card__title-text">Multi-player</h2>
+          </div>
+          <p>
+            Grab your friends and play together to get as many points as possible, or compete to see who has the best
+            music knowledge.
+          </p>
         </div>
-        <p>
-          Grab your friends and play together to get as many points as possible, or compete to see who has the best
-          music knowledge.
-        </p>
         <button class="btn-primary" disabled>Coming Soon</button>
       </div>
     </div>
@@ -69,7 +73,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.2rem;
+  gap: 4rem;
   height: 100%;
   max-width: 40rem;
   margin: 0 auto;
@@ -120,9 +124,12 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    justify-content: space-between;
     gap: 0.8rem;
     border-radius: 4px;
     padding: 1.6rem;
+    flex: 1;
+    height: 100%;
 
     &.time-challenge {
       background-color: var(--secondary);
@@ -134,10 +141,19 @@ onMounted(async () => {
       color: var(--background-primary);
     }
 
+    .card-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
     .card__title {
       font-size: 1.8rem;
       font-weight: 700;
       line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
     p {

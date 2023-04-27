@@ -37,7 +37,7 @@ watch([currentPathArtist, finalArtist], () => {
             <ArtistImage v-for="artist in store.pathArtists" :artist="artist" />
           </div>
 
-          <i class="fa fa-arrow-right" />
+          <i v-if="store.finalArtist" class="fa fa-2xl fa-arrow-right" />
 
           <ArtistImage v-if="store.finalArtist" :artist="store.finalArtist" />
         </div>
@@ -56,7 +56,13 @@ watch([currentPathArtist, finalArtist], () => {
           <p>{{ track.name }}</p>
           <div class="track-artists">
             <template v-for="artist in track.artists">
-              <span v-if="artist.id == store.currentPathArtist?.id">{{ artist.name }}</span>
+              <span
+                v-if="
+                  artist.id == store.currentPathArtist?.id ||
+                  !track.artists.map((artist) => artist.id).includes(store.currentPathArtist?.id ?? '')
+                "
+                >{{ artist.name }}</span
+              >
               <button class="select-artist" v-else @click="() => store.handleUserSelectsArtist(artist, track)">
                 {{ artist.name }}
               </button>
@@ -66,14 +72,16 @@ watch([currentPathArtist, finalArtist], () => {
       </div>
 
       <div class="search-area">
+        <Streak />
         <button
           class="refresh-artists-btn btn-primary"
           @click="() => store.refreshArtists(false)"
           :disabled="store.isLoadingNewArtists"
         >
-          Refresh Artists
+          Skip
+          <i class="fa fa-forward" />
         </button>
-        <TrackSearchInput v-if="store?.currentPathArtist?.name" :disabled="store.isLoadingNewArtists" />
+        <TrackSearchInput v-if="store?.currentPathArtist?.name" />
       </div>
     </div>
   </div>
@@ -111,6 +119,7 @@ watch([currentPathArtist, finalArtist], () => {
   .artists-in-play {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 0.4rem;
 
     .artists-stack {
@@ -146,9 +155,10 @@ watch([currentPathArtist, finalArtist], () => {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  align-items: flex-end;
   .refresh-artists-btn {
-    align-self: flex-end;
     padding: 0.8rem;
+    border: 1px solid var(--text-primary);
     @media (prefers-color-scheme: dark) {
       background-color: var(--text-primary);
       color: var(--background-primary);
