@@ -30,6 +30,7 @@ firestore.rules
 pubsub-debug.log
 ui-debug.log
 /firebase-export*
+hosting.*.cache
 
 # misc
 .DS_Store
