@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useAppStore } from "../pinia/store";
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 
 // store and component state
 const store = useAppStore();
 const inputRef = ref<HTMLInputElement>();
+const { currentPathArtist } = storeToRefs(store);
 const lastTrackSubmission = ref<string>();
 
 // component functions
@@ -15,7 +17,12 @@ const handleSubmit = () => {
   const searchWithoutFilters = lastTrackSubmission.value === trackGuess;
   store.suggestTracks(trackGuess, !searchWithoutFilters);
   lastTrackSubmission.value = trackGuess;
+  if (searchWithoutFilters && inputRef.value) inputRef.value.value = "";
 };
+
+watch(currentPathArtist, () => {
+  if (inputRef.value) inputRef.value.value = "";
+});
 </script>
 
 <template>
