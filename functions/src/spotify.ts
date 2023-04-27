@@ -269,7 +269,7 @@ async function searchForTracksWithQuery({
     // do initial request to work out how many more requests are needed to get all songs
     const initialResponse = await axios.get<{ tracks: { total: number; items: Track[] } }>(url, {
       params: {
-        q: `${trackName.toLowerCase().replace(/\s/g, "")}` + `${artistName ? `%20${artistName.replace(/\s/g, "")}` : ""}`,
+        q: `${trackName} ${artistName}`,
         type: "track",
         offset: "0",
         limit: `${Math.max(limit ?? 50, 50)}`,
