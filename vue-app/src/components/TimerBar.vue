@@ -9,19 +9,20 @@ let timeoutId = ref<NodeJS.Timer>();
 let timerBarRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  timeoutId.value = setTimeout(() => store.setIsGameOver(true), 60000);
+  timeoutId.value = setTimeout(() => store.setIsGameOver(true), 120000);
   if (timerBarRef.value) timerBarRef.value.classList.add("start");
 });
 
 watch(streak, (currentStreak, prevStreak) => {
+  // when user gets a full path, reset the timer
   if (currentStreak > prevStreak) {
+    // reset timeout
     clearTimeout(timeoutId.value);
-    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 60000);
+    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 120000);
+    // reset animation
+    if (timerBarRef.value) timerBarRef.value.classList.remove("start");
+    setTimeout(() => (timerBarRef.value ? timerBarRef.value.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
   }
-
-  if (timerBarRef.value) timerBarRef.value.classList.remove("start");
-  // add tiny delay between removing and addnig back the class to ensure animation is triggered
-  setTimeout(() => (timerBarRef.value ? timerBarRef.value.classList.add("start") : null), 100);
 });
 
 onBeforeUnmount(() => clearTimeout(timeoutId.value));
@@ -40,8 +41,8 @@ onBeforeUnmount(() => clearTimeout(timeoutId.value));
 
   &.start {
     animation-name: countdown;
-    animation-duration: 60s;
-    animation-fill-mode: normal;
+    animation-duration: 120s;
+    animation-fill-mode: forwards;
     animation-delay: 0ms;
   }
 }
