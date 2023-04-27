@@ -176,15 +176,15 @@ export const useAppStore = defineStore("app", {
     setHadErrorFetchingResults(value: boolean) {
       this.hadErrorFetchingResults = value;
     },
-    async suggestTracks(trackGuess: string) {
+    async suggestTracks(trackGuess: string, filter: boolean) {
       this.setIsLoadingResults(true);
       this.setHasMadeAttempt(true);
       try {
         const tracksResponse = await searchForTracksWithQuery({
           trackName: trackGuess,
           artistName: this.currentPathArtist?.name ?? "",
-          requireMultipleArtists: true,
-          requireThisArtist: true,
+          requireMultipleArtists: filter,
+          requireThisArtist: filter,
           requireSimilarName: true,
           strictMode: false,
         });
