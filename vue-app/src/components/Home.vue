@@ -2,16 +2,18 @@
 import GenreChip from "./GenreChip.vue";
 import { useAppStore } from "../pinia/store";
 import { onMounted } from "vue";
-import { connectFirestoreEmulator } from "firebase/firestore";
-import { connectFunctionsEmulator, httpsCallable } from "firebase/functions";
-import { db, functions } from "../firebase-config";
+// import { connectFirestoreEmulator } from "firebase/firestore";
+// import { connectFunctionsEmulator } from "firebase/functions";
+// import { db } from "../firebase-config";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase-config";
 
 const getAvailableGenreSeeds = httpsCallable<undefined, string[]>(functions, "Spotify-getAvailableGenreSeeds");
 const store = useAppStore();
 
 onMounted(async () => {
-  connectFirestoreEmulator(db, "localhost", 8080);
-  connectFunctionsEmulator(functions, "localhost", 5001);
+  // connectFirestoreEmulator(db, "localhost", 8080);
+  // connectFunctionsEmulator(functions, "localhost", 5001);
   try {
     const availableGenres = await getAvailableGenreSeeds();
     store.setAvailableGenres(availableGenres.data);
