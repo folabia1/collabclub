@@ -160,7 +160,6 @@ export const useAppStore = defineStore("app", {
           track: { name: track.name, artistNames: track.artists.map((artist) => artist.name) },
         });
         this.setSuggestedTracks([]);
-        this.streak++;
       } catch {}
     },
     /* Suggested Tracks */
