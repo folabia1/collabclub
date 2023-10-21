@@ -2,9 +2,8 @@ import React, { createContext, useEffect, useState, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { connectFirestoreEmulator } from "firebase/firestore";
-import { connectAuthEmulator, onAuthStateChanged, signInAnonymously, deleteUser } from "firebase/auth";
 import { connectFunctionsEmulator } from "firebase/functions";
-import { auth, db, functions } from "./firebase-config";
+import { db, functions } from "./firebase-config";
 
 import { Home } from "./pages/Home";
 import { MultiPlayer } from "./pages/MultiPlayer";
@@ -14,7 +13,6 @@ import { Sidebar } from "./components/Sidebar";
 
 export const UserContext = createContext(null);
 export const InfoContext = createContext([]);
-// export const PlaylistsContext = createContext({});
 
 function App() {
   const [user, _setUser] = useState(null);
@@ -43,29 +41,9 @@ function App() {
     }, 5000);
   }
 
-  // async function handleTabClosing() {
-  //   // delete and sign out guest user
-  //   if (auth.currentUser.isAnonymous) {
-  //     await deleteUser(auth.currentUser);
-  //   }
-  // }
-
   useEffect(() => {
-    // connectAuthEmulator(auth, "localhost", 9099);
     connectFirestoreEmulator(db, "localhost", 8080);
     connectFunctionsEmulator(functions, "localhost", 5001);
-    // onAuthStateChanged(auth, async (authUser) => {
-    //   setUser(authUser);
-    // });
-    // if (!auth.currentUser) {
-    //   // SIGN IN
-    //   (async () => await signInAnonymously(auth))();
-    // }
-    // window.addEventListener("unload", handleTabClosing);
-
-    // return async () => {
-    //   window.removeEventListener("unload", handleTabClosing);
-    // };
   }, []);
 
   return (
@@ -76,14 +54,6 @@ function App() {
         </dialog>
         <UserContext.Provider value={{ user, setUser }}>
           <InfoContext.Provider value={{ info, setInfo }}>
-            {/* <PlaylistsContext.Provider
-                value={{
-                selectedPlaylists,
-                setSelectedPlaylists,
-                finishedSelecting,
-                setFinishedSelecting,
-              }}
-            > */}
             <Sidebar />
             <main>
               <Routes>
@@ -95,7 +65,6 @@ function App() {
                 <Route path="developers-only" element={<DevelopersOnly />} />
               </Routes>
             </main>
-            {/* </PlaylistsContext.Provider> */}
           </InfoContext.Provider>
         </UserContext.Provider>
       </div>
