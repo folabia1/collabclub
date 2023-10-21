@@ -105,6 +105,7 @@ export default function Game({ availableGenres }) {
   const [isGameOver, setIsGameOver] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = location.search.slice(1).split("&");
   const genreOptions =
     searchParams
@@ -135,7 +136,13 @@ export default function Game({ availableGenres }) {
     }
   }
 
+  function handleSkip() {
+    setPathArtists([]);
+    refetch();
+  }
+
   function handleRestart() {
+    setPathArtists([]);
     setIsGameOver(false);
     refetch();
   }
@@ -172,7 +179,7 @@ export default function Game({ availableGenres }) {
             <TimerBar onTimeout={() => setIsGameOver(true)} streak={streak} />
             <SearchAndResults onSelectArtist={handleSelectArtist} />
             <Streak streak={streak} />
-            <button className="refresh-artists-btn btn-primary" onClick={() => refetch()} disabled="store.isLoadingNewArtists">
+              <button className="refresh-artists-btn btn-primary" onClick={handleSkip} disabled={isLoading}>
               Skip
               <i className="fa fa-forward" />
             </button>
