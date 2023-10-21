@@ -113,8 +113,7 @@ export default function Home({ availableGenres }) {
 
   function toggleGenreSelected(genre) {
     setSelectedGenres((prevSelectedGenres) => {
-      if (prevSelectedGenres.includes(genre))
-        return prevSelectedGenres.filter((selectedGenre) => selectedGenre !== genre);
+      if (prevSelectedGenres.includes(genre)) return prevSelectedGenres.filter((selectedGenre) => selectedGenre !== genre);
       else return [...prevSelectedGenres, genre];
     });
   }
