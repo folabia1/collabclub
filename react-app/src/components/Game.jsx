@@ -205,7 +205,7 @@ export default function Game({ availableGenres }) {
             <div className="error">
               <span>Something went wrong 🫢 This site is probably so popular that the servers have crashed.</span>
               <button className="back-btn btn-primary" onClick={() => navigate("/")} disabled={isLoading}>
-                Back to home
+                Back to Home
               </button>
             </div>
           ) : (
