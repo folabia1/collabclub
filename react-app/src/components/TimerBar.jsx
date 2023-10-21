@@ -1,19 +1,17 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 const StyledTimerBar = styled.div`
-  .timer-bar {
-    background-color: var(--accent);
-    width: 100%;
-    padding-block: 0.4rem;
-    border-radius: 12px;
+  background-color: var(--accent);
+  width: 100%;
+  padding-block: 0.4rem;
+  border-radius: 12px;
 
-    &.start {
-      animation-name: countdown;
-      animation-duration: 120s;
-      animation-fill-mode: forwards;
-      animation-delay: 0ms;
-    }
+  &.start {
+    animation-name: countdown;
+    animation-duration: 120s;
+    animation-fill-mode: forwards;
+    animation-delay: 0ms;
   }
 
   @keyframes countdown {
@@ -33,30 +31,20 @@ const StyledTimerBar = styled.div`
   }
 `;
 
-export default function TimerBar({ streak }) {
-  let timeoutId = useRef(null);
+export default function TimerBar({ onTimeout = () => {}, streak, startTimer = false }) {
+  const [timeoutId, setTimeoutId] = useState(null);
   let timerBarRef = useRef(null);
 
   useEffect(() => {
-    timeoutId.value = setTimeout(() => store.setIsGameOver(true), 120000);
-    if (timerBarRef.value) timerBarRef.value.classList.add("start");
-    return () => clearTimeout(timeoutId.value);
-  }, []);
+    if (startTimer) {
+      // reset timeout
+      clearTimeout(timeoutId);
+      setTimeoutId(setTimeout(onTimeout, 120000));
+      // reset animation
+      if (timerBarRef.current) timerBarRef.current.classList.remove("start");
+      setTimeout(() => (timerBarRef.current ? timerBarRef.current.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
+    }
+  }, [streak, startTimer]);
 
-  useEffect(
-    (currentStreak, prevStreak) => {
-      // when user gets a full path, reset the timer
-      if (currentStreak > prevStreak) {
-        // reset timeout
-        clearTimeout(timeoutId.value);
-        timeoutId.value = setTimeout(() => store.setIsGameOver(true), 120000);
-        // reset animation
-        if (timerBarRef.value) timerBarRef.value.classList.remove("start");
-        setTimeout(() => (timerBarRef.value ? timerBarRef.value.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
-      }
-    },
-    [streak]
-  );
-
-  return <StyledTimerBar ref={timerBarRef} className="timer-bar" />;
+  return <StyledTimerBar ref={timerBarRef} className={`timer-bar`} />;
 }
