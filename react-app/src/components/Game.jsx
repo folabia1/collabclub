@@ -173,10 +173,11 @@ export default function Game({ availableGenres }) {
 
             {currentPathArtist && finalArtist && (
               <div className="artist-names">
-                <p>{currentPathArtist.name}</p>
-                <p>{finalArtist.name}</p>
+                <p className="artist-name">{!isFetching && currentPathArtist.name}</p>
+                <p className="artist-name">{!isFetching && finalArtist.name}</p>
               </div>
             )}
+          </div>
 
             <TimerBar onTimeout={() => setIsGameOver(true)} streak={streak} />
             <SearchAndResults onSelectArtist={handleSelectArtist} />
