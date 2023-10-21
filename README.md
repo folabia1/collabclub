@@ -1,6 +1,6 @@
 # Collab Club - Music Knowledge Game
 
-Check this project out at https://collab-club-6dc4d.web.app/
+Check this project out at [collabclub.app](https://collabclub.app)
 
 ## About This Project
 
