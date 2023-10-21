@@ -19,7 +19,7 @@ echo "Deploying new production web version..."
 git checkout production
 
 # merge and build changes
-git merge master
+git merge master -m "Merge branch 'master' into production"
 npm run build --workspace=react-app
 
 # check if there are changes to react-app folder
