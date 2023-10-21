@@ -115,15 +115,17 @@ export default function Game({ availableGenres }) {
   const selectedGenre = useMemo(() => genreOptions[Math.floor(genreOptions.length * Math.random())], []);
   const nonSelectedGenres = genreOptions.filter((genre) => genre !== selectedGenre);
 
-  useEffect(() => {
-    setSelectedGenre();
-  }, []);
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["starting-artists"],
+    queryFn: async () => getRandomStartingArtists({ genreName: selectedGenre }),
+    refetchOnWindowFocus: false,
+    enabled: !!selectedGenre,
+  });
 
-  const currentPathArtist = pathArtists.length === 0 ? null : pathArtists[pathArtists.length - 1];
-
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["starting-artists"], queryFn: getRandomStartingArtists });
   const initialArtist = data?.data?.artists[0] ?? null;
   const finalArtist = data?.data?.artists[1] ?? null;
+
+  const currentPathArtist = pathArtists.length === 0 ? initialArtist : pathArtists[pathArtists.length - 1];
 
   function handleSelectArtist() {
     if (currentPathArtist?.id === finalArtist?.id) {
