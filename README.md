@@ -14,7 +14,6 @@ Collab Club is a music knowledge game where players attempt to find a link betwe
 ## How To Run This Project Locally
 
 - Clone this repository
-- `cd vue-app`
-- `npm run emulators:start`
-- open a new terminal
-- `npm run dev`
+- `npm install`
+- in one terminal, `npm run emulators:start`
+- in another terminal, `npm run dev`
