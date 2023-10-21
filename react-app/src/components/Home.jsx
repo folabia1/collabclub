@@ -24,7 +24,6 @@ const StyledHome = styled.div`
     flex-direction: column;
     gap: 0.2rem;
     flex-grow: 1;
-    height: 0;
     @media (min-width: 720px) {
       flex-grow: 0;
       height: auto;
