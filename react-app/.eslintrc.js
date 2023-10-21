@@ -20,5 +20,10 @@ module.exports = {
     sourceType: "module",
   },
   plugins: ["react"],
-  rules: {},
+  rules: {
+    "no-unused-vars": "warn",
+    "react/no-unknown-property": "warn",
+    "react/prop-types": "off",
+    "react/no-unescaped-entities": "off",
+  },
 };

@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
-    "firebase": "^9.6.11",
+    "firebase": "^10.5.0",
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.20.0",
     "react": "^18.0.0",
@@ -17,7 +17,7 @@
     "build": "tsc && vite build",
     "build:functions": "cd ../functions && npm run build",
     "serve": "vite preview",
-    "emulators:start": "npm run build:functions && firebase emulators:start --import=../saved-emulator-data --export-on-exit",
+    "emulators:start": "source ~/.nvm/nvm.sh && nvm use 16 && npm run build:functions && firebase emulators:start --import=../saved-emulator-data --export-on-exit",
     "emulators:stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9"
   },
   "eslintConfig": {
