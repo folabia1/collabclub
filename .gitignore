@@ -17,9 +17,7 @@ saved-emulator-data
 
 # production
 /build
-/functions/lib
-/functions/tsconfig.json
-/functions/tsconfig.dev.json
+/functions/dist
 
 # firebase
 firebase-debug.log
