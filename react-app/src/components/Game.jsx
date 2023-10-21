@@ -152,7 +152,9 @@ export default function Game({ availableGenres }) {
       <div className="time-challenge">
         <div className="genre-chips">
           {selectedGenre && <GenreChip text={selectedGenre} active={true} disabled={true} />}
-          <GenreChip selectedGenre text={selectedGenre} active={false} disabled={true} />
+          {nonSelectedGenres.map((genre) => (
+            <GenreChip key={genre} text={genre} active={false} disabled={true} />
+          ))}
         </div>
 
         <div className="main">
