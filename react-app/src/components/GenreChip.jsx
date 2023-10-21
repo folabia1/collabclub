@@ -38,9 +38,9 @@ const StyledGenreChip = styled.button`
   }
 `;
 
-export default function GenreChip({ text, active, disabled }) {
+export default function GenreChip({ text, active, onClick, disabled }) {
   return (
-    <StyledGenreChip className={`genre-chip${active ? " active" : ""}`} disabled={disabled}>
+    <StyledGenreChip className={`genre-chip${active ? " active" : ""}`} onClick={() => onClick(text)} disabled={disabled}>
       {text}
     </StyledGenreChip>
   );
