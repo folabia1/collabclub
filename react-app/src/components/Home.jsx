@@ -35,14 +35,13 @@ const StyledHome = styled.div`
   }
 
   .genre-chips {
-    display: flex;
+    display: grid;
     gap: 0.8rem;
-    flex-wrap: wrap;
-    @media (min-width: 720px) {
-      flex-wrap: nowrap;
-    }
+    grid-template-columns: 1fr 1fr 1fr;
 
-    overflow-y: auto;
+    @media (max-width: 380px) {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .game-modes {
@@ -125,7 +124,6 @@ export default function Home({ availableGenres }) {
   return (
     <StyledHome>
       <div className="genre-chips-container">
-        <p>Select Genres</p>
         <div className="genre-chips">
           {availableGenres.map((genre) => (
             <GenreChip key={genre} text={genre} active={selectedGenres.includes(genre)} onClick={toggleGenreSelected} disabled={false} />

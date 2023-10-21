@@ -25,7 +25,7 @@ const StyledGame = styled.div`
     gap: 0.8rem;
     grid-template-columns: 1fr 1fr 1fr;
 
-    @media (max-width: 300px) {
+    @media (max-width: 380px) {
       grid-template-columns: 1fr 1fr;
     }
   }
