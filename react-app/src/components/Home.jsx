@@ -156,22 +156,6 @@ export default function Home({ availableGenres }) {
             Play
           </button>
         </div>
-
-        <div className="card multiplayer">
-          <div className="card-text">
-            <div className="card__title">
-              <i className="fa fa-users" />
-              <h2 className="card__title-text">Multi-player</h2>
-            </div>
-            <p>
-              Grab your friends and play together to get as many points as possible, or compete to see who has the best
-              music knowledge.
-            </p>
-          </div>
-          <button className="btn-primary" disabled>
-            Coming Soon
-          </button>
-        </div>
       </div>
     </StyledHome>
   );
