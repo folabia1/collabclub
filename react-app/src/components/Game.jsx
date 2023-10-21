@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 import { getRandomStartingArtists } from "../logic/api";
@@ -21,9 +21,13 @@ const StyledGame = styled.div`
   }
 
   .genre-chips {
-    display: flex;
+    display: grid;
     gap: 0.8rem;
-    overflow-x: auto;
+    grid-template-columns: 1fr 1fr 1fr;
+
+    @media (max-width: 300px) {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .main {
@@ -37,7 +41,7 @@ const StyledGame = styled.div`
   .artists {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.8rem;
 
     .artists-in-play {
       display: flex;
@@ -55,10 +59,26 @@ const StyledGame = styled.div`
 
     .artist-names {
       display: flex;
-      justify-content: space-between;
       font-weight: 500;
       gap: 2rem;
+      min-height: 2.2rem;
+
+      > .artist-name {
+        font-size: 1.2rem;
+        flex: 1;
+
+        &:last-child {
+          text-align: right;
+        }
+      }
     }
+  }
+
+  .error {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: center;
   }
 
   .results {
@@ -191,11 +211,11 @@ export default function Game({ availableGenres }) {
           ) : (
             <>
               <SearchAndResults currentPathArtist={currentPathArtist} onSelectArtist={handleSelectArtist} />
-            <Streak streak={streak} />
+              <Streak streak={streak} />
               <button className="refresh-artists-btn btn-primary" onClick={handleSkip} disabled={isLoading}>
-              Skip
-              <i className="fa fa-forward" />
-            </button>
+                Skip
+                <i className="fa fa-forward" />
+              </button>
             </>
           )}
         </div>
