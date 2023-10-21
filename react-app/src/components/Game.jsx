@@ -179,14 +179,25 @@ export default function Game({ availableGenres }) {
             )}
           </div>
 
-            <TimerBar onTimeout={() => setIsGameOver(true)} streak={streak} />
-            <SearchAndResults onSelectArtist={handleSelectArtist} />
+          <TimerBar startTimer={!isFetching && !isError} onTimeout={() => setIsGameOver(true)} streak={streak} />
+
+          {isError ? (
+            <div className="error">
+              <span>Something went wrong 🫢 This site is probably so popular that the servers have crashed.</span>
+              <button className="back-btn btn-primary" onClick={() => navigate("/")} disabled={isLoading}>
+                Back to home
+              </button>
+            </div>
+          ) : (
+            <>
+              <SearchAndResults currentPathArtist={currentPathArtist} onSelectArtist={handleSelectArtist} />
             <Streak streak={streak} />
               <button className="refresh-artists-btn btn-primary" onClick={handleSkip} disabled={isLoading}>
               Skip
               <i className="fa fa-forward" />
             </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
       {isGameOver && <GameOverModal onClickRestart={handleRestart} />}
