@@ -1,6 +1,8 @@
-import * as functions from "firebase-functions"; // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 import * as admin from "firebase-admin"; // The Firebase Admin SDK to access Firestore.
+import * as functions from "firebase-functions"; // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
+
 import * as Spotify from "./spotify";
+
 export { Spotify }; // * connect exports from spotify.ts
 
 // setup firebase and firestore
@@ -198,7 +200,7 @@ exports.leaveRoom = functions.https.onCall(async ({ roomName }, context) => {
   return { message: `[leaveRoom] User ${context.auth.uid} is not in Room ${roomName}.` };
 });
 
-exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context }) => {
+exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, genreName, context }) => {
   // if user is not signed in
   if (!context?.auth?.uid) {
     console.log("[setNewRoomArtists] No user provided. Unable to set new artists for room.");
@@ -211,6 +213,12 @@ exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context })
     throw new Error(
       `[setNewRoomArtists] Argument "roomName" must be a string. Unable to remove User ${context.auth.uid} from room.`
     );
+  }
+
+  // no genre provided
+  if (!genreName || typeof genreName !== "string") {
+    console.log(`[setNewRoomArtists] Argument "genreName" must be a string.`);
+    throw new Error(`[setNewRoomArtists] Argument "genreName" must be a string.`);
   }
 
   const roomRef = firestore.doc(`rooms/${roomName}`);
@@ -227,7 +235,7 @@ exports.setNewRoomArtists = functions.https.onCall(async ({ roomName, context })
 
   // select 2 random artists from artists collection
   try {
-    const { artists: selectedArtists, genre } = await Spotify.getRandomArtistsFromSameGenre(2);
+    const { artists: selectedArtists, genre } = await Spotify.getRandomArtistsFromSameGenre(2, genreName);
     // update selected artists in room
     firestore.doc(`rooms/${roomName}`).update({
       initialArtist: {

@@ -16,7 +16,8 @@
     "all": "npm run serve --workspace=functions & npm run dev --workspace=react-app",
     "stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9",
     "emulators:stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy-web": "./deploy-web.sh"
   },
   "author": "",
   "license": "ISC"
