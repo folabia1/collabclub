@@ -1,14 +1,14 @@
+import { connectFirestoreEmulator } from "firebase/firestore";
+import { connectFunctionsEmulator } from "firebase/functions";
 import React, { createContext, useEffect, useRef, useState } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import { db, functions } from "./firebase-config";
 
+import { Sidebar } from "./components/Sidebar";
+import { db, functions } from "./firebase-config";
 import { DevelopersOnly } from "./pages/DevelopersOnly";
 import { Home } from "./pages/Home";
 import { MultiPlayer } from "./pages/MultiPlayer";
-import { Sidebar } from "./components/Sidebar";
 import { SinglePlayer } from "./pages/SinglePlayer";
-import { connectFirestoreEmulator } from "firebase/firestore";
-import { connectFunctionsEmulator } from "firebase/functions";
 
 export const UserContext = createContext(null);
 export const InfoContext = createContext([]);
