@@ -3,8 +3,8 @@
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "lint": "eslint .",
-    "serve": "firebase emulators:start --only functions",
-    "emulators:start": "firebase emulators:start --only functions",
+    "serve": "source $HOME/.nvm/nvm.sh; nvm use 16; firebase emulators:start --only functions",
+    "emulators:start": "source $HOME/.nvm/nvm.sh; nvm use 16; firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
