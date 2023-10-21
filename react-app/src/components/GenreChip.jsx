@@ -16,6 +16,7 @@ const StyledGenreChip = styled.button`
   &:disabled {
     border-color: var(--disabled);
     background-color: transparent;
+    cursor: not-allowed;
     @media (prefers-color-scheme: dark) {
       color: var(--disabled);
     }
