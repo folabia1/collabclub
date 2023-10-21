@@ -105,8 +105,14 @@ export default function Game({ availableGenres }) {
   const [isGameOver, setIsGameOver] = useState(false);
 
   const location = useLocation();
-  const genreOptions = [];
-  const [selectedGenre, setSelectedGenre] = useState(null);
+  const searchParams = location.search.slice(1).split("&");
+  const genreOptions =
+    searchParams
+      .find((param) => param.startsWith("genre="))
+      ?.slice(6)
+      .split(",") ?? availableGenres;
+
+  const selectedGenre = useMemo(() => genreOptions[Math.floor(genreOptions.length * Math.random())], []);
   const nonSelectedGenres = genreOptions.filter((genre) => genre !== selectedGenre);
 
   useEffect(() => {

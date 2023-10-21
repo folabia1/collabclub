@@ -118,7 +118,8 @@ export default function Home({ availableGenres }) {
   }
 
   function handleStartGame() {
-    navigate("/play");
+    const urlSearchParams = selectedGenres.length > 0 ? `?genre=${selectedGenres.join(",")}` : "";
+    navigate(`/play${urlSearchParams}`);
   }
 
   return (
