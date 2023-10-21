@@ -1,20 +1,20 @@
 # Collab Club - Music Knowledge Game
 
-## How to run locally
+Check this project out at https://collab-club-6dc4d.web.app/
 
-Switch to using node16 with `nvm use 16` to match the version being used on firebase.
-Start up the emulators with `npm run emulators:start` in the root directory.
-Start the web project locally with `npm run start`.
-To run the watch server for SCSS and TypeScript compilers, run `npm run dev`.
+## About This Project
 
-This has two versions of the web app: one in React and the other in Vue. The most recent version is the one built in Vue.
+Collab Club is a music knowledge game where players attempt to find a link between two artists through songs with **collaborations** (a.k.a. features). For example, to find a link between [Drake](https://open.spotify.com/artist/3TVXtAsR1Inumwj472S9r4?si=1on3qchTQtWCRtgxP6-pQg) and [Justin Timberlake](https://open.spotify.com/artist/31TPClRtHm23RisEBtV3X7?si=3TtH49-AQheh-lFIiwRtwg), the following chain be used:
 
-## Availability
+- **Drake** to **Kanye West** with [Glow - (Drake, Kanye West)](https://open.spotify.com/track/28irpKCCK9nn9DZSik2zEx?si=cfeda2c48a0e4979)
+- **Kanye West** to **Pop Smoke** with [Tell the Vision - (Pop Smoke, Kanye West, Pusha T)](https://open.spotify.com/track/2UwALqx6yOsXTFt7zRxnts?si=bb2e2df909124b75)
+- **Pop Smoke** to **50 Cent** with [The Woo - (Pop Smoke, 50 Cent, Roddy Ricch)](https://open.spotify.com/track/1H7KnK26kc1YyellpbINEn?si=dda5183dad0342ce)
+- **50 Cent** to **Justin Timberlake** with [Ayo Technology - (50 Cent, Justin Timberlake, Timbaland)](https://open.spotify.com/track/6kfQDanT6Buh4Wu73ghbav?si=a92dbbaeeac94825)
 
-This project will be available to try out soon.
+## How To Run This Project Locally
 
-## Built With
-
-- React / Vue
-- Spotify API
-- Firebase
+- Clone this repository
+- `cd vue-app`
+- `npm run emulators:start`
+- open a new terminal
+- `npm run dev`
