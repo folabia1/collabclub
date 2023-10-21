@@ -2,12 +2,14 @@ import React from "react";
 import styled from "styled-components";
 
 const StyledGenreChip = styled.button`
-  border-radius: 12px;
-  padding: 0.2rem 0.6rem;
+  border-radius: 18px;
+  padding: 0.2rem 1.2rem;
   white-space: nowrap;
-  border: 1px var(--accent) solid;
-  background-color: transparent;
+  border: 2px var(--accent) solid;
+  background-color: rgba(0, 0, 0, 0.1);
+  font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 
   @media (prefers-color-scheme: dark) {
     color: var(--accent);
