@@ -159,14 +159,14 @@ export default function Game({ availableGenres }) {
           <div className="artists">
             <div className="artists-in-play">
               <div className="artists-stack">
-                <ArtistImage artist={initialArtist} loading={isLoading} />
+                <ArtistImage photoUrl={initialArtist?.photoUrl} name={initialArtist?.name} error={isError} fetching={isFetching} />
                 {pathArtists.map((artist) => (
-                  <ArtistImage key={artist.id} artist={artist} />
+                  <ArtistImage key={artist.id} photoUrl={artist?.photoUrl} name={artist?.name} error={isError} fetching={isFetching} />
                 ))}
               </div>
 
               <i className="fa fa-2xl fa-arrow-right" />
-              <ArtistImage artist={finalArtist} loading={isLoading} />
+              <ArtistImage photoUrl={finalArtist?.photoUrl} name={finalArtist?.name} error={isError} fetching={isFetching} />
             </div>
 
             {currentPathArtist && finalArtist && (
