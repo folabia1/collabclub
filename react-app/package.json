@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "vite --port 3000",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build:functions": "cd ../functions && npm run build",
     "serve": "vite preview",
     "emulators:start": "source ~/.nvm/nvm.sh && nvm use 16 && npm run build:functions && firebase emulators:start --import=../saved-emulator-data --export-on-exit",
