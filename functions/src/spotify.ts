@@ -348,8 +348,8 @@ exports.getAvailableGenreSeeds = functions.https.onCall(getAvailableGenreSeeds);
 
 export async function getRandomArtistsFromSameGenre(numArtists: number, genreName: string) {
   if (!genreName) {
-    console.log(`\n[ERROR: getRandomArtistsFromSameGenre] No selected genre - ${error}`);
-    throw new Error(`[ERROR: getRandomArtistsFromSameGenre] No selected genre - ${error}`);
+    console.log(`\n[ERROR: getRandomArtistsFromSameGenre] No selected genre`);
+    throw new Error(`[ERROR: getRandomArtistsFromSameGenre] No selected genre`);
   }
 
   try {
