@@ -139,8 +139,8 @@ export default function Home({ availableGenres }) {
               <h2 className="card__title-text">Time Challenge</h2>
             </div>
             <p>
-              Race against the clock in this fun time challenge! See how well you know artist features - you'll be given two artists and you
-              need to construct a path between them using features!
+              Race against the clock in this fun time challenge! See how well you know artist features: you'll be given two artists and you
+              need to construct a path between them using features.
             </p>
           </div>
           <button className="btn-primary" onClick={handleStartGame}>
