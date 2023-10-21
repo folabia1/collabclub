@@ -99,7 +99,7 @@ const StyledGame = styled.div`
   }
 `;
 
-export default function Game() {
+export default function Game({ availableGenres }) {
   const [pathArtists, setPathArtists] = useState([]);
   const [streak, setStreak] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);

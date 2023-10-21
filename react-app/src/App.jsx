@@ -25,6 +25,8 @@ const StyledApp = styled.div`
 const queryClient = new QueryClient();
 
 export default function App() {
+  const availableGenres = ["afrobeat", "hip-hop", "house", "latino", "r-n-b", "rock"];
+
   return (
     <QueryClientProvider client={queryClient}>
       <StyledApp>
@@ -32,8 +34,8 @@ export default function App() {
         <Router>
           <TitleBar />
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/play" element={<Game />} />
+            <Route path="/" element={<Home availableGenres={availableGenres} />} />
+            <Route path="/play" element={<Game availableGenres={availableGenres} />} />
           </Routes>
         </Router>
       </StyledApp>

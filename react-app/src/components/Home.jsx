@@ -107,10 +107,9 @@ const StyledHome = styled.div`
   }
 `;
 
-export default function Home() {
+export default function Home({ availableGenres }) {
   const navigate = useNavigate();
   const [selectedGenres, setSelectedGenres] = useState([]);
-  const availableGenres = ["afrobeat", "hip-hop", "house", "latino", "r-n-b", "rock"];
 
   function toggleGenreSelected(genre) {
     setSelectedGenres((prevSelectedGenres) => {
