@@ -27,7 +27,7 @@ changesToWebFolder=true
 if [ -z "$(git status -- react-app/ | grep \"react-app\")" ]; then changesToWebFolder=false; fi
 
 # deploy firebase cloud functions changes
-npm run deploy --workspave=functions
+npm run deploy --workspace=functions
 
 # commit and push changes
 git commit -am "build web changes to dist"
