@@ -9,7 +9,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "build": "source $HOME/.nvm/nvm.sh; nvm use 16; npm i --package-lock-only --workspaces false; npm run lint && tsc"
+    "build": "npm run update-package-lock; npm run lint && tsc",
+    "update-package-lock": "source $HOME/.nvm/nvm.sh; nvm use 16; npm i --package-lock-only --workspaces false;"
   },
   "engines": {
     "node": "16"
