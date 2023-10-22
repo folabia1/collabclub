@@ -43,12 +43,12 @@ git checkout master
 
 # print out useful links and messages
 if [ $changesToWebAppFolder = true ]; then
-  echo "✅ Changes have been push successfully. The "deploy-web" Github Action has been triggered. https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+  echo "\n\n✅ Changes have been push successfully. The \"deploy-web\" Github Action has been triggered. https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
 else
-  echo "❌ No changes to "web-app" folder. This will not trigger the "deploy-web" Github Action. https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+  echo "\n\n❌ No changes to \"web-app\" folder. This will not trigger the \"deploy-web\" Github Action. https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
 fi
 if [ $changesToFunctionsFolder = true ]; then
   echo "\n✅ Firebase Cloud Functions have been updated."
 else
-  echo "\n❌ No changes to "functions" folder. Firebase Cloud Functions have NOT been updated."
+  echo "\n❌ No changes to \"functions\" folder. Firebase Cloud Functions have NOT been updated."
 fi
