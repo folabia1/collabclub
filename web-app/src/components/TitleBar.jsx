@@ -2,12 +2,15 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
+import { useColorTheme } from "../hooks/useColorTheme";
+
 const StyledTitleBar = styled.div`
   display: flex;
   justify-content: space-between;
   position: relative;
   align-items: center;
-  padding-block: 0.8rem;
+  padding: 0.4rem 1.6rem;
+  box-shadow: 2px 4px 4px rgba(0, 0, 0, 0.12);
 
   .menu-button,
   .spacer {
@@ -41,9 +44,8 @@ const StyledTitleBar = styled.div`
 `;
 
 export default function TitleBar() {
-  // const location = useLocation();
   const navigate = useNavigate();
-  // console.log(`🚀 ~ location.pathname:`, location.pathname);
+  const [colorTheme, setColorTheme] = useColorTheme();
 
   return (
     <StyledTitleBar>
@@ -58,8 +60,12 @@ export default function TitleBar() {
       <h1 className="title" onClick={() => navigate("/")}>
         Collab Club
       </h1>
-      <div className="spacer" />
-      <div className="shadow" />
+      <button
+        className="btn-primary"
+        onClick={() => setColorTheme((prevColorTheme) => (prevColorTheme === "light-mode" ? "dark-mode" : "light-mode"))}
+      >
+        {colorTheme === "dark-mode" ? "Light Mode" : "Dark Mode"}
+      </button>
     </StyledTitleBar>
   );
 }

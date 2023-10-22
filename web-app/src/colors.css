@@ -1,40 +1,20 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-size: 10px;
-
-  color-scheme: light dark;
-  color: var(--text-primary);
-  background-color: var(--background-primary);
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-
-  /* Light-Mode Colors */
+body,
+body.dark-mode {
   --accent: #1ed760;
   --secondary: #beb8eb;
-  --text-primary: #242625;
-  --background-primary: #ede3e9;
+  --link-hover-color: #747bff;
   --disabled: #90a296;
   --info: #4b8f8c;
+
+  /* Dark-Mode Colors (Default) */
+  --text-primary: #ede3e9;
+  --background-primary: #242625;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark-Mode Colors */
-    --text-primary: #ede3e9;
-    --background-primary: #242625;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+body.light-mode {
+  /* Light-Mode Colors */
+  --text-primary: #242625;
+  --background-primary: #ede3e9;
 }
 
 /* CSS Reset */

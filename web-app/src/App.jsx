@@ -8,18 +8,7 @@ import Home from "./components/Home";
 import TitleBar from "./components/TitleBar";
 
 const StyledApp = styled.div`
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.vue:hover {
-    filter: drop-shadow(0 0 2em #42b883aa);
-  }
+  height: 100%;
 `;
 
 const queryClient = new QueryClient();
@@ -30,7 +19,6 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StyledApp>
-        <div></div>
         <Router>
           <TitleBar />
           <Routes>
