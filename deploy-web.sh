@@ -18,13 +18,12 @@ echo "Deploying new production web version..."
 # switch to production branch
 git checkout production
 
-# merge and build changes
-git merge master -m "Merge branch 'master' into production"
-npm run build --workspace=web-app
-
-# check if there are changes to web-app folder
+# merge changes and check if there are changes to web-app folder
 changesToWebAppFolder=true
+git merge master
 if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebAppFolder=false; fi
+git commit -am "Merge branch 'master' into production"
+
 
 # if there are changes to functions, deploy firebase cloud functions
 changesToFunctionsFolder=true
@@ -34,7 +33,8 @@ else
   changesToFunctionsFolder=false
 fi
 
-# commit and push changes
+# build, commit and push changes
+npm run build --workspace=web-app
 git commit -am "build web changes to dist"
 git push
 
