@@ -355,6 +355,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
   try {
     const accessToken = await getSpotifyAuthToken(); // request access token
     const availableGenres = await getAvailableGenreSeeds(accessToken);
+    const topXArtistsInGenre = 50; // TODO: make this adjustable
 
     const randomGenre = availableGenres[Math.floor(Math.random() * availableGenres.length)];
     const selectedGenre = genreName && availableGenres.includes(genreName) ? genreName : randomGenre;
@@ -368,7 +369,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
             q: `genre:${selectedGenre}`,
             type: "artist",
             limit: 1,
-            offset: Math.floor(Math.random() * 50),
+            offset: Math.floor(Math.random() * topXArtistsInGenre),
           },
           headers: standardRequestHeaders(accessToken),
         })
