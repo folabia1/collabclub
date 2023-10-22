@@ -28,7 +28,7 @@ if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebAppFold
 
 # if there are changes to functions, deploy firebase cloud functions
 changesToFunctionsFolder=true
-if [ -z "$(git status -- functions/ | grep "functions")" ]; then
+if [ "$(git status -- functions/ | grep "functions")" ]; then
   npm run deploy --workspace=functions;
 else
   changesToFunctionsFolder=false
