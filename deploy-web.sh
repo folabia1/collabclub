@@ -26,8 +26,8 @@ npm run build --workspace=web-app
 changesToWebFolder=true
 if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebFolder=false; fi
 
-# deploy firebase cloud functions changes
-npm run deploy --workspace=functions
+# if there are changes to functions, deploy firebase cloud functions
+if [ -z "$(git status -- functions/ | grep "functions")" ]; then npm run deploy --workspace=functions; fi
 
 # commit and push changes
 git commit -am "build web changes to dist"
