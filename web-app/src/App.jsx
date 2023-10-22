@@ -7,7 +7,9 @@ import Game from "./components/Game";
 import Home from "./components/Home";
 import TitleBar from "./components/TitleBar";
 
-const StyledApp = styled.div``;
+const StyledApp = styled.div`
+  height: 100%;
+`;
 
 const queryClient = new QueryClient();
 
@@ -17,7 +19,6 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StyledApp>
-        <div></div>
         <Router>
           <TitleBar />
           <Routes>

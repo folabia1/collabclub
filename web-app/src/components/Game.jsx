@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
-import { getRandomStartingArtists } from "../logic/api";
+import { getArtistWithPhotoUrl, getRandomStartingArtists } from "../logic/api";
 import ArtistImage from "./ArtistImage";
 import GameOverModal from "./GameOverModal";
 import GenreChip from "./GenreChip";
@@ -12,13 +12,11 @@ import Streak from "./Streak";
 import TimerBar from "./TimerBar";
 
 const StyledGame = styled.div`
-  .time-challenge {
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    height: 100%;
-  }
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  height: 100%;
 
   .genre-chips {
     display: grid;
@@ -33,7 +31,6 @@ const StyledGame = styled.div`
   .main {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     flex-grow: 1;
     gap: 1.2rem;
   }
@@ -80,48 +77,11 @@ const StyledGame = styled.div`
     gap: 0.8rem;
     align-items: center;
   }
-
-  .results {
-    flex-grow: 1;
-    flex-shrink: 1;
-    height: 0;
-    overflow-y: auto;
-
-    .track-artists {
-      display: flex;
-      gap: 0.4rem;
-      align-items: center;
-    }
-
-    .select-artist {
-      background-color: var(--secondary);
-      color: #242625;
-      padding: 0rem 0.8rem;
-      &:hover {
-        opacity: 0.9;
-      }
-    }
-  }
-
-  .search-area {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    align-items: flex-end;
-    .refresh-artists-btn {
-      padding: 0.8rem;
-      border: 1px solid var(--text-primary);
-      @media (prefers-color-scheme: dark) {
-        background-color: var(--text-primary);
-        color: var(--background-primary);
-      }
-    }
-  }
 `;
 
 export default function Game({ availableGenres }) {
-  const [pathArtists, setPathArtists] = useState([]);
   const [streak, setStreak] = useState(0);
+  const [pathArtists, setPathArtists] = useState([]);
   const [isGameOver, setIsGameOver] = useState(false);
 
   const location = useLocation();
@@ -148,20 +108,31 @@ export default function Game({ availableGenres }) {
 
   const currentPathArtist = pathArtists.length === 0 ? initialArtist : pathArtists[pathArtists.length - 1];
 
-  function handleSelectArtist() {
-    if (currentPathArtist?.id === finalArtist?.id) {
+  async function handleSelectArtist(artist) {
+    const pathComplete = artist?.id === finalArtist?.id;
+    if (pathComplete) {
       setStreak((prevStreak) => prevStreak + 1);
       setPathArtists([]);
       refetch();
+    } else {
+      try {
+        const artistResponse = await getArtistWithPhotoUrl({ artistId: artist.id });
+        const artistWithPhotoUrl = artistResponse.data;
+        setPathArtists((prevPathArtists) => [...prevPathArtists, artistWithPhotoUrl]);
+      } catch {
+        setPathArtists((prevPathArtists) => [...prevPathArtists, artist]);
+      }
     }
   }
 
   function handleSkip() {
+    setStreak(0);
     setPathArtists([]);
     refetch();
   }
 
   function handleRestart() {
+    setStreak(0);
     setPathArtists([]);
     setIsGameOver(false);
     refetch();
@@ -169,57 +140,56 @@ export default function Game({ availableGenres }) {
 
   return (
     <StyledGame>
-      <div className="time-challenge">
-        <div className="genre-chips">
-          {selectedGenre && <GenreChip text={selectedGenre} active={true} disabled={true} />}
-          {nonSelectedGenres.map((genre) => (
-            <GenreChip key={genre} text={genre} active={false} disabled={true} />
-          ))}
-        </div>
+      <div className="genre-chips">
+        {selectedGenre && <GenreChip text={selectedGenre} active={true} disabled={true} />}
+        {nonSelectedGenres.map((genre) => (
+          <GenreChip key={genre} text={genre} active={false} disabled={true} />
+        ))}
+      </div>
 
-        <div className="main">
-          <div className="artists">
-            <div className="artists-in-play">
-              <div className="artists-stack">
-                <ArtistImage photoUrl={initialArtist?.photoUrl} name={initialArtist?.name} error={isError} fetching={isFetching} />
-                {pathArtists.map((artist) => (
-                  <ArtistImage key={artist.id} photoUrl={artist?.photoUrl} name={artist?.name} error={isError} fetching={isFetching} />
-                ))}
-              </div>
-
-              <i className="fa fa-2xl fa-arrow-right" />
-              <ArtistImage photoUrl={finalArtist?.photoUrl} name={finalArtist?.name} error={isError} fetching={isFetching} />
+      <div className="main">
+        <div className="artists">
+          <div className="artists-in-play">
+            <div className="artists-stack">
+              <ArtistImage photoUrl={initialArtist?.photoUrl} name={initialArtist?.name} error={isError} fetching={isFetching} />
+              {pathArtists.map((artist) => (
+                <ArtistImage key={artist.id} photoUrl={artist?.photoUrl} name={artist?.name} error={isError} fetching={isFetching} />
+              ))}
             </div>
 
-            {currentPathArtist && finalArtist && (
-              <div className="artist-names">
-                <p className="artist-name">{!isFetching && currentPathArtist.name}</p>
-                <p className="artist-name">{!isFetching && finalArtist.name}</p>
-              </div>
-            )}
+            <i className="fa fa-2xl fa-arrow-right" />
+            <ArtistImage photoUrl={finalArtist?.photoUrl} name={finalArtist?.name} error={isError} fetching={isFetching} />
           </div>
 
-          <TimerBar startTimer={!isFetching && !isError} onTimeout={() => setIsGameOver(true)} streak={streak} />
-
-          {isError ? (
-            <div className="error">
-              <span>Something went wrong 🫢 This site is probably so popular that the servers have crashed.</span>
-              <button className="back-btn btn-primary" onClick={() => navigate("/")} disabled={isLoading}>
-                Back to Home
-              </button>
+          {currentPathArtist && finalArtist && (
+            <div className="artist-names">
+              <p className="artist-name">{!isFetching && currentPathArtist.name}</p>
+              <p className="artist-name">{!isFetching && finalArtist.name}</p>
             </div>
-          ) : (
-            <>
-              <SearchAndResults currentPathArtist={currentPathArtist} onSelectArtist={handleSelectArtist} />
-              <Streak streak={streak} />
-              <button className="refresh-artists-btn btn-primary" onClick={handleSkip} disabled={isLoading}>
-                Skip
-                <i className="fa fa-forward" />
-              </button>
-            </>
           )}
         </div>
+
+        <TimerBar startTimer={!isFetching && !isError} onTimeout={() => setIsGameOver(true)} streak={streak} />
+
+        {isError ? (
+          <div className="error">
+            <span>Something went wrong 🫢 This site is probably so popular that the servers have crashed.</span>
+            <button className="back-btn btn-primary" onClick={() => navigate("/")} disabled={isLoading}>
+              Back to Home
+            </button>
+          </div>
+        ) : (
+          <>
+            <SearchAndResults currentPathArtist={currentPathArtist} onSelectArtist={handleSelectArtist} />
+            <Streak streak={streak} />
+            <button className="refresh-artists-btn btn-primary" onClick={handleSkip} disabled={isLoading}>
+              Skip
+              <i className="fa fa-forward" />
+            </button>
+          </>
+        )}
       </div>
+
       {isGameOver && <GameOverModal onClickRestart={handleRestart} />}
     </StyledGame>
   );

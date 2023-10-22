@@ -35,16 +35,22 @@ export default function TimerBar({ onTimeout = () => {}, streak, startTimer = fa
   const [timeoutId, setTimeoutId] = useState(null);
   let timerBarRef = useRef(null);
 
+  function resetTimer() {
+    // reset timeout
+    clearTimeout(timeoutId);
+    setTimeoutId(setTimeout(onTimeout, 120000));
+    // reset animation
+    if (timerBarRef.current) timerBarRef.current.classList.remove("start");
+    setTimeout(() => (timerBarRef.current ? timerBarRef.current.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
+  }
+
   useEffect(() => {
-    if (startTimer) {
-      // reset timeout
-      clearTimeout(timeoutId);
-      setTimeoutId(setTimeout(onTimeout, 120000));
-      // reset animation
-      if (timerBarRef.current) timerBarRef.current.classList.remove("start");
-      setTimeout(() => (timerBarRef.current ? timerBarRef.current.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
-    }
-  }, [streak, startTimer]);
+    if (startTimer) resetTimer();
+  }, [startTimer]);
+
+  useEffect(() => {
+    if (streak > 0) resetTimer();
+  }, [streak]);
 
   return <StyledTimerBar ref={timerBarRef} className={`timer-bar`} />;
 }

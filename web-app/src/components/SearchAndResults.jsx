@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { searchForTracksWithQuery } from "../logic/api";
@@ -9,6 +8,41 @@ const StyledTrackSearchInput = styled.div`
   flex-direction: column;
   gap: 0.4rem;
   width: 100%;
+
+  .results {
+    flex-grow: 1;
+    flex-shrink: 1;
+
+    .track-artists {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .select-artist {
+      background-color: var(--secondary);
+      color: #242625;
+      padding: 0rem 0.8rem;
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  .search-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    align-items: flex-end;
+    .refresh-artists-btn {
+      padding: 0.8rem;
+      border: 1px solid var(--text-primary);
+      @media (prefers-color-scheme: dark) {
+        background-color: var(--text-primary);
+        color: var(--background-primary);
+      }
+    }
+  }
 
   .input-area {
     display: flex;
@@ -20,7 +54,7 @@ const StyledTrackSearchInput = styled.div`
     background-color: rgba(255, 255, 255, 0.8);
 
     border-radius: 8px;
-    border-width: 2px;
+    border-width: 0px;
     border-color: var(--button-primary);
     color: #242625;
     padding: 0.4rem;
@@ -30,70 +64,75 @@ const StyledTrackSearchInput = styled.div`
 
 const StyledSearchAndResults = styled.div``;
 
-export default function SearchAndResults({ onSelectArtist, currentPathArtist, loadingArtists = false, isErrorLoadingArtists = false }) {
+export default function SearchAndResults({
+  onSelectArtist = (artist) => {},
+  currentPathArtist,
+  loadingArtists = false,
+  isErrorLoadingArtists = false,
+}) {
   const [inputValue, setInputValue] = useState("");
-  const [trackGuess, setTrackGuess] = useState(null);
-  const [isRetry, setIsRetry] = useState(false);
-
-  const filters = {
-    trackName: trackGuess,
-    artistName: currentPathArtist?.name ?? "",
-    requireMultipleArtists: !isRetry,
-    requireThisArtist: !isRetry,
-    requireSimilarName: true,
-    strictMode: false,
-  };
-
-  const { data, isLoading, isError, refetch } = useQuery({
-    enabled: !!trackGuess,
-    queryKey: ["track-search", filters],
-    queryFn: async () => searchForTracksWithQuery(filters),
-  });
-
-  const suggestedTracks = data ?? [];
+  const [lastGuess, setLastGuess] = useState(null);
+  const [isError, setIsError] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
 
   const resultsMessage = loadingArtists
     ? "Loading..."
-    : suggestedTracks.length === 0 && isRetry
+    : searchResults.length === 0
     ? "No results."
     : isError
     ? "Error fetching results. Try again."
     : null;
 
   // component functions
-  function handleSubmit() {
-    if (inputValue === trackGuess) {
-      setIsRetry(true);
-      setInputValue("");
-    } else {
-      setTrackGuess(inputValue);
-    }
+  async function handleSubmit(inputValue) {
+    if (!inputValue) return;
 
-    refetch();
+    const isRetry = inputValue === lastGuess;
+    setLastGuess(inputValue);
+
+    const filters = {
+      trackName: inputValue,
+      artistName: currentPathArtist?.name ?? "",
+      requireMultipleArtists: !isRetry,
+      requireThisArtist: !isRetry,
+      requireSimilarName: true,
+      strictMode: false,
+    };
+
+    try {
+      const data = await searchForTracksWithQuery(filters);
+      const tracks = data?.data ?? [];
+      setSearchResults(tracks);
+      setIsError(false);
+    } catch {
+      setIsError(true);
+    }
   }
 
   useEffect(() => {
     setInputValue("");
+    setLastGuess(null);
+    setSearchResults([]);
   }, [currentPathArtist]);
 
   return (
     <StyledSearchAndResults>
       <div className="results">
         {resultsMessage && <span>{resultsMessage}</span>}
-        {suggestedTracks.map((track) => (
+        {searchResults.map((track) => (
           <div key={track.id}>
             <p>{track.name}</p>
             <div className="track-artists">
               {track.artists.map((artist) => {
                 const clickable =
-                  artist.id == currentPathArtist?.id || !track.artists.map((artist) => artist.id).includes(currentPathArtist?.id ?? "");
+                  artist.id != currentPathArtist?.id && track.artists.map((artist) => artist.id).includes(currentPathArtist?.id ?? "");
 
                 return clickable ? (
-                  <button className="select-artist btn-primary" onClick={onSelectArtist}>
+                  <button key={artist.id} className="select-artist btn-primary" onClick={() => onSelectArtist(artist)}>
                     {artist.name}
                   </button>
                 ) : (
-                  <span>{artist.name}</span>
+                  <span key={artist.id}>{artist.name}</span>
                 );
               })}
             </div>
@@ -113,7 +152,9 @@ export default function SearchAndResults({ onSelectArtist, currentPathArtist, lo
             <input
               type="search"
               placeholder="Track name..."
-              onKeyUp={(e) => (e.key === "Enter" ? handleSubmit() : null)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => (e.key === "Enter" ? handleSubmit(e.target.value) : null)}
               disabled={loadingArtists}
             />
             <button className="submit-btn btn-primary" onClick={handleSubmit}>

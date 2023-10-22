@@ -12,19 +12,28 @@ const StyledGenreChip = styled.button`
   font-size: 1.8rem;
   font-weight: 700;
   text-align: center;
-  color: ${(props) => (props.colorTheme === "dark-mode" ? "var(--accent)" : "var(--text-color)")};
+  color: var(--accent);
+  &.light-mode {
+    color: var(--text-color);
+  }
 
   &:disabled {
     border-color: var(--disabled);
     background-color: transparent;
     cursor: not-allowed;
-    color: ${(props) => (props.colorTheme === "dark-mode" ? "var(--disabled)" : "var(--text-color)")};
+    color: var(--disabled);
+    &.light-mode {
+      color: var(--text-color);
+    }
   }
 
   &.active {
     border-color: var(--accent);
     background-color: var(--accent);
-    color: ${(props) => (props.colorTheme === "dark-mode" ? "var(--background-primary)" : "var(--text-color)")};
+    color: var(--background-primary);
+    &.light-mode {
+      color: var(--text-color);
+    }
   }
 
   &:disabled.active {
@@ -36,12 +45,7 @@ const StyledGenreChip = styled.button`
 export default function GenreChip({ text, active, onClick = () => {}, disabled }) {
   const [colorTheme] = useColorTheme();
   return (
-    <StyledGenreChip
-      colorTheme={colorTheme}
-      className={`genre-chip${active ? " active" : ""}`}
-      onClick={() => onClick(text)}
-      // disabled={disabled}
-    >
+    <StyledGenreChip className={`genre-chip${active ? " active" : ""} ${colorTheme}`} onClick={() => onClick(text)} disabled={disabled}>
       {text}
     </StyledGenreChip>
   );

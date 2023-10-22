@@ -25,11 +25,21 @@ body {
   background-color: var(--background-primary);
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 a:hover {
   color: var(--link-hover-color);
 }
 button {
   background-color: #f9f9f9;
+}
+textarea:focus,
+input:focus {
+  outline: none;
+  border: none;
 }
 
 /* CSS Reset */
