@@ -48,5 +48,5 @@ export default forwardRef(function TimerBar({ onTimeout = () => {} }, ref) {
     return () => ref.current.removeEventListener("start-timer", resetTimer);
   }, []);
 
-  return <StyledTimerBar ref={ref} className={`timer-bar`} />;
+  return <StyledTimerBar ref={ref} />;
 });
