@@ -111,7 +111,7 @@ async function getAllAlbumsByAnArtist(artistId: string, accessToken: string) {
     return albums;
   } catch (error) {
     console.log(`\n[ERROR: getAllAlbumsByAnArtist] Unable to retrieve tracks from Spotify - ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -142,7 +142,7 @@ async function getTracksFromAlbumIds(albumIds: string[], accessToken: string) {
     return tracks;
   } catch (error) {
     console.log(`\n[ERROR: getTracksFromAlbumIds] - ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -202,7 +202,7 @@ async function searchForTracksInArtistDiscography({
     console.log(
       `\n[ERROR: searchForTracksInArtistDiscography] Unable to get all tracks from Artist ${artistId}'s discography - ${error}`
     );
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 exports.searchForTracksInArtistDiscography = functions.https.onCall(searchForTracksInArtistDiscography);
@@ -324,7 +324,7 @@ async function searchForTracksWithQuery({
     return filteredTracks;
   } catch (error) {
     console.log(`\n[ERROR: searchForTracksWithQuery] Unable to retrieve songs from Spotify: ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -340,7 +340,7 @@ async function getAvailableGenreSeeds(accessToken: string | undefined) {
     return availableGenres;
   } catch (error) {
     console.log(`\n[ERROR: getRandomGenre] Unable to get available genre seeds - ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -396,7 +396,7 @@ export async function getRandomArtistsFromSameGenre(numArtists: number, genreNam
     return { artists: randomArtistsFromGenre, genre: selectedGenre };
   } catch (error) {
     console.log(`\n[ERROR: getRandomArtistsFromSameGenre] Unable to get artist - ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -416,7 +416,7 @@ async function getArtistWithPhotoUrl({ artistId, accessToken }: { artistId: stri
     return artist;
   } catch (error) {
     console.log(`\n[ERROR: getArtistWithPhotoUrl] - ${error}`);
-    throw new Error(error);
+    throw new Error(`\n[ERROR: ${error}`);
   }
 }
 
@@ -450,7 +450,7 @@ export async function getMultipleArtists(artistsIds: string[], accessToken: stri
   }
 }
 
-exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string | undefined }) => {
+exports.getRandomStartingArtists = functions.https.onCall(async ({ genreName }: { genreName: string }) => {
   // get 2 random artists from the genre provided, or a random genre if none provided
   const artistsResponse = await getRandomArtistsFromSameGenre(2, genreName);
 
