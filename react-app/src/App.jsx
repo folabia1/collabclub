@@ -7,20 +7,7 @@ import Game from "./components/Game";
 import Home from "./components/Home";
 import TitleBar from "./components/TitleBar";
 
-const StyledApp = styled.div`
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.vue:hover {
-    filter: drop-shadow(0 0 2em #42b883aa);
-  }
-`;
+const StyledApp = styled.div``;
 
 const queryClient = new QueryClient();
 

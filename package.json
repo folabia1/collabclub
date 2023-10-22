@@ -3,7 +3,6 @@
   "workspaces": [
     "functions",
     "react-app",
-    "vue-app",
     "mobile-app"
   ],
   "version": "1.0.0",
