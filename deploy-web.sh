@@ -29,7 +29,11 @@ if [ -z "$(git status -- react-app/ | grep \"react-app\")" ]; then
 fi
 =======
 changesToWebFolder=true
+<<<<<<< HEAD
 if [ -z "$(git status -- react-app/ | grep \"react-app\")" ]; then changesToWebFolder=false; fi
+>>>>>>> master
+=======
+if [ -z "$(git status -- react-app/ | grep "react-app")" ]; then changesToWebFolder=false; fi
 >>>>>>> master
 
 # deploy firebase cloud functions changes
@@ -44,9 +48,17 @@ git checkout master
 
 # print out useful links and messages
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 if [ $changesToWebFolder = false ]; then
   echo "No changes to \"react-app\" folder. This will not trigger the \"deploy-web\" Github Action."
 fi
 >>>>>>> master
 echo "\nGithub Action: https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+=======
+echo "\n\n"
+if [ $changesToWebFolder = false ]; then
+  echo "No changes to \"react-app\" folder. This will not trigger the \"deploy-web\" Github Action."
+fi
+echo "Github Action: https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+>>>>>>> master
