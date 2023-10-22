@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
@@ -103,14 +103,24 @@ export default function Game({ availableGenres }) {
     enabled: !!selectedGenre,
   });
 
+  useEffect(() => {
+    if (!isLoading && !isError) startTimer();
+  }, [isLoading]);
+
   const initialArtist = data?.data?.artists[0] ?? null;
   const finalArtist = data?.data?.artists[1] ?? null;
 
   const currentPathArtist = pathArtists.length === 0 ? initialArtist : pathArtists[pathArtists.length - 1];
 
+  const timerBarRef = useRef(null);
+  function startTimer() {
+    if (timerBarRef?.current) timerBarRef.current.dispatchEvent(new Event("start-timer"));
+  }
+
   async function handleSelectArtist(artist) {
     const pathComplete = artist?.id === finalArtist?.id;
     if (pathComplete) {
+      startTimer();
       setStreak((prevStreak) => prevStreak + 1);
       setPathArtists([]);
       refetch();
@@ -126,13 +136,13 @@ export default function Game({ availableGenres }) {
   }
 
   function handleSkip() {
-    setStreak(0);
     setPathArtists([]);
     refetch();
   }
 
   function handleRestart() {
     setStreak(0);
+    startTimer();
     setPathArtists([]);
     setIsGameOver(false);
     refetch();
@@ -169,7 +179,13 @@ export default function Game({ availableGenres }) {
           )}
         </div>
 
-        <TimerBar startTimer={!isFetching && !isError} onTimeout={() => setIsGameOver(true)} streak={streak} />
+        <TimerBar
+          finalArtistId={finalArtist?.id}
+          canStartTimer={!isFetching && !isError}
+          onTimeout={() => setIsGameOver(true)}
+          streak={streak}
+          ref={timerBarRef}
+        />
 
         {isError ? (
           <div className="error">
