@@ -2,17 +2,17 @@
   "name": "collabclub",
   "workspaces": [
     "functions",
-    "react-app",
+    "web-app",
     "mobile-app"
   ],
   "version": "1.0.0",
   "description": "Check this project out at https://collab-club-6dc4d.web.app/",
   "main": "n/a",
   "scripts": {
-    "dev": "npm run dev --workspace=react-app",
+    "dev": "npm run dev --workspace=web-app",
     "start": "npm run serve --workspace=functions",
     "emulators:start": "npm run serve --workspace=functions",
-    "all": "npm run serve --workspace=functions & npm run dev --workspace=react-app",
+    "all": "npm run serve --workspace=functions & npm run dev --workspace=web-app",
     "stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9",
     "emulators:stop": "lsof -t -i:5001 -i:5002 -i:8080 -i:8085 -i:9000 -i:9099 -i:9199 -i:9090 | xargs kill -9",
     "test": "echo \"Error: no test specified\" && exit 1",
