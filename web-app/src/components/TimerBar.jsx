@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import styled from "styled-components";
 
 const StyledTimerBar = styled.div`
@@ -31,26 +31,22 @@ const StyledTimerBar = styled.div`
   }
 `;
 
-export default function TimerBar({ onTimeout = () => {}, streak, startTimer = false }) {
+export default forwardRef(function TimerBar({ onTimeout = () => {} }, ref) {
   const [timeoutId, setTimeoutId] = useState(null);
-  let timerBarRef = useRef(null);
 
   function resetTimer() {
     // reset timeout
     clearTimeout(timeoutId);
     setTimeoutId(setTimeout(onTimeout, 120000));
     // reset animation
-    if (timerBarRef.current) timerBarRef.current.classList.remove("start");
-    setTimeout(() => (timerBarRef.current ? timerBarRef.current.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
+    if (ref.current) ref.current.classList.remove("start");
+    setTimeout(() => (ref.current ? ref.current.classList.add("start") : null), 100); // add tiny delay to ensure animation is triggered
   }
 
   useEffect(() => {
-    if (startTimer) resetTimer();
-  }, [startTimer]);
+    ref.current.addEventListener("start-timer", resetTimer);
+    return () => ref.current.removeEventListener("start-timer", resetTimer);
+  }, []);
 
-  useEffect(() => {
-    if (streak > 0) resetTimer();
-  }, [streak]);
-
-  return <StyledTimerBar ref={timerBarRef} className={`timer-bar`} />;
-}
+  return <StyledTimerBar ref={ref} className={`timer-bar`} />;
+});
