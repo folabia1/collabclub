@@ -20,11 +20,11 @@ git checkout production
 
 # merge and build changes
 git merge master -m "Merge branch 'master' into production"
-npm run build --workspace=react-app
+npm run build --workspace=vue-app
 
-# check if there are changes to react-app folder
+# check if there are changes to vue-app folder
 changesToWebFolder=true
-if [ -z "$(git status -- react-app/ | grep "react-app")" ]; then changesToWebFolder=false; fi
+if [ -z "$(git status -- vue-app/ | grep "vue-app")" ]; then changesToWebFolder=false; fi
 
 # deploy firebase cloud functions changes
 npm run deploy --workspace=functions
@@ -39,6 +39,6 @@ git checkout master
 # print out useful links and messages
 echo "\n\n"
 if [ $changesToWebFolder = false ]; then
-  echo "No changes to \"react-app\" folder. This will not trigger the \"deploy-web\" Github Action."
+  echo "No changes to \"vue-app\" folder. This will not trigger the \"deploy-web\" Github Action."
 fi
 echo "Github Action: https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
