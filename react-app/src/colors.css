@@ -1,0 +1,84 @@
+body,
+body.dark-mode {
+  --accent: #1ed760;
+  --secondary: #beb8eb;
+  --link-hover-color: #747bff;
+  --disabled: #90a296;
+  --info: #4b8f8c;
+
+  /* Dark-Mode Colors (Default) */
+  --text-primary: #ede3e9;
+  --background-primary: #242625;
+}
+
+body.light-mode {
+  /* Light-Mode Colors */
+  --text-primary: #242625;
+  --background-primary: #ede3e9;
+}
+
+/* CSS Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+textarea,
+button,
+select {
+  font: inherit;
+}
+
+button.btn-primary {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border: none;
+  padding-block: 0.4rem;
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: light) {
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  cursor: pointer;
+}
+
+.info {
+  color: var(--info);
+}
+
+p {
+  font-size: 1.4rem;
+}
