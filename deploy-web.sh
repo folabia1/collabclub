@@ -23,11 +23,16 @@ git merge master -m "Merge branch 'master' into production"
 npm run build --workspace=web-app
 
 # check if there are changes to web-app folder
-changesToWebFolder=true
-if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebFolder=false; fi
+changesToWebAppFolder=true
+if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebAppFolder=false; fi
 
 # if there are changes to functions, deploy firebase cloud functions
-if [ -z "$(git status -- functions/ | grep "functions")" ]; then npm run deploy --workspace=functions; fi
+changesToFunctionsFolder=true
+if [ -z "$(git status -- functions/ | grep "functions")" ]; then
+  npm run deploy --workspace=functions;
+else
+  changesToFunctionsFolder=false
+fi
 
 # commit and push changes
 git commit -am "build web changes to dist"
@@ -37,8 +42,14 @@ git push
 git checkout master
 
 # print out useful links and messages
-echo "\n\n"
-if [ $changesToWebFolder = false ]; then
-  echo "No changes to \"web-app\" folder. This will not trigger the \"deploy-web\" Github Action."
+echo "\n\nGithub Action: https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+if [ $changesToWebAppFolder = true ]; then
+  echo "✅ Changes have been push successfully. The "deploy-web" Github Action has been triggered."
+else
+  echo "❌ No changes to "web-app" folder. This will not trigger the "deploy-web" Github Action."
 fi
-echo "Github Action: https://github.com/folabia1/collabclub/actions/workflows/deploy-web.yml"
+if [ $changesToFunctionsFolder = true ]; then
+  echo "\n✅ Firebase Cloud Functions have been updated."
+else
+  echo "\n❌ No changes to "functions" folder. Firebase Cloud Functions have NOT been updated."
+fi
