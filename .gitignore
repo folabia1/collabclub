@@ -23,7 +23,6 @@ saved-emulator-data
 firebase-debug.log
 firebase.secret.json
 firestore-debug.log
-firestore.indexes.json
 firestore.rules
 pubsub-debug.log
 ui-debug.log
