@@ -6,10 +6,10 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
-import { firebase, functions } from "./firebase-config";
+import { firestore, functions } from "./firebase-config";
 
 if (import.meta.env.DEV) {
-  connectFirestoreEmulator(firebase, "localhost", 8080);
+  connectFirestoreEmulator(firestore, "localhost", 8080);
   connectFunctionsEmulator(functions, "localhost", 5001);
 }
 
