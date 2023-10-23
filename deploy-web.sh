@@ -20,7 +20,7 @@ git checkout production
 
 # merge changes and check if there are changes to web-app folder
 changesToWebAppFolder=true
-git merge master
+git merge master --no-commit
 if [ -z "$(git status -- web-app/ | grep "web-app")" ]; then changesToWebAppFolder=false; fi
 git commit -am "Merge branch 'master' into production"
 
